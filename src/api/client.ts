@@ -29,7 +29,10 @@ export async function apiRequest<TResponse, TBody = unknown>(
   options: RequestOptions<TBody> = {}
 ): Promise<TResponse> {
   const { method = 'GET', body, signal } = options;
-  const url = `${baseUrl}${path}`;
+  // Normalize URL to avoid double slashes when baseUrl ends with a slash
+  const normalizedBase = baseUrl.replace(/\/+$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${normalizedBase}${normalizedPath}`;
   console.log('Making API request to:', url);
 
   const response = await fetch(url, {
