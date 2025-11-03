@@ -22,7 +22,7 @@ export class ApiError extends Error {
 const envUrl = import.meta.env.VITE_API_URL;
 // Fallback to the production Railway host if the env var wasn't set at build time.
 const baseUrl =
-  envUrl ?? (import.meta.env.MODE === 'development' ? '/api' : 'https://garage-backend-production-ee79.up.railway.app');
+  envUrl ?? (import.meta.env.MODE === 'development' ? '/api' : 'https://garage-backend-production-ee79.up.railway.app/api');
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
