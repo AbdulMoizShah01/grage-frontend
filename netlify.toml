@@ -1,0 +1,12 @@
+# Netlify settings for single-page application
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  VITE_API_URL = "https://garage-backend-production-e008.up.railway.app"
