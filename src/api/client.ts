@@ -19,7 +19,10 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = import.meta.env.VITE_API_URL ?? '/api';
+const envUrl = import.meta.env.VITE_API_URL;
+// Fallback to the production Railway host if the env var wasn't set at build time.
+const baseUrl =
+  envUrl ?? (import.meta.env.MODE === 'development' ? '/api' : 'https://garage-backend-production-ee79.up.railway.app');
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
@@ -29,7 +32,7 @@ export async function apiRequest<TResponse, TBody = unknown>(
   const url = `${baseUrl}${path}`;
   console.log('Making API request to:', url);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
