@@ -7,7 +7,7 @@ export default defineConfig(({ command }) => ({
     port: 5173,
     proxy: command === 'serve' ? {
       '/api': {
-        target: 'https://garage-backend-production-ee79.up.railway.app/',
+        target: 'https://garage-backend-production-ee79.up.railway.app/api',
         changeOrigin: true,
         secure: true
       }
