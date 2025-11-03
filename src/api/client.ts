@@ -26,12 +26,17 @@ export async function apiRequest<TResponse, TBody = unknown>(
   options: RequestOptions<TBody> = {}
 ): Promise<TResponse> {
   const { method = 'GET', body, signal } = options;
+  const url = `${baseUrl}${path}`;
+  console.log('Making API request to:', url);
 
-  const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     },
+    mode: 'cors',
+    credentials: 'omit',
     body: body ? JSON.stringify(body) : undefined,
     signal
   });
