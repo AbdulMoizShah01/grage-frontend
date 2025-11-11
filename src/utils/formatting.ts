@@ -1,6 +1,8 @@
-const currencyFormatter = new Intl.NumberFormat(undefined, {
+const currencyFormatter = new Intl.NumberFormat('en-RW', {
   style: 'currency',
-  currency: 'USD'
+  currency: 'RWF',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0
 });
 
 export const formatCurrency = (value: number | string | null | undefined) => {

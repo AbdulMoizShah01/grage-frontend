@@ -1,15 +1,15 @@
 import { ReactNode } from 'react';
-import { Box, Flex, Icon, Text, VStack, Link as ChakraLink, Badge, useColorModeValue } from '@chakra-ui/react';
+import { Box, Flex, Icon, Text, VStack, Link as ChakraLink, Badge, useColorModeValue, Image } from '@chakra-ui/react';
 import { NavLink } from 'react-router-dom';
 import {
   MdDashboard,
-  MdDirectionsCar,
-  MdPeople,
   MdAssignment,
   MdInventory,
   MdEngineering,
   MdHistory,
-  MdHomeRepairService
+  MdHomeRepairService,
+  MdInsights,
+  MdOutlineViewModule
 } from 'react-icons/md';
 
 type NavItem = {
@@ -20,13 +20,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: MdDashboard },
-  { label: 'Customers', to: '/customers', icon: MdPeople },
-  { label: 'Vehicles', to: '/vehicles', icon: MdDirectionsCar },
+  { label: 'Metadata', to: '/metadata', icon: MdOutlineViewModule },
   { label: 'Work Orders', to: '/work-orders', icon: MdAssignment },
   { label: 'Work Order History', to: '/work-orders/history', icon: MdHistory },
   { label: 'Inventory', to: '/inventory', icon: MdInventory },
   { label: 'Services', to: '/services', icon: MdHomeRepairService },
-  { label: 'Workers', to: '/workers', icon: MdEngineering }
+  { label: 'Workers', to: '/workers', icon: MdEngineering },
+  { label: 'Insights', to: '/insights', icon: MdInsights }
 ];
 
 type SidebarProps = {
@@ -37,7 +37,6 @@ type SidebarProps = {
 export const Sidebar = ({ footer, inventoryAlertsCount }: SidebarProps) => {
   const sidebarBg = useColorModeValue('surface.base', '#111111');
   const borderColor = useColorModeValue('border.subtle', 'whiteAlpha.200');
-  const logoColor = useColorModeValue('brand.600', 'brand.200');
   const hoverBg = useColorModeValue('gray.100', 'whiteAlpha.100');
   const activeBg = useColorModeValue('brand.50', 'whiteAlpha.200');
   const activeColor = useColorModeValue('brand.600', 'white');
@@ -56,9 +55,9 @@ export const Sidebar = ({ footer, inventoryAlertsCount }: SidebarProps) => {
       position="sticky"
       top={0}
     >
-      <Text fontSize="2xl" fontWeight="bold" color={logoColor} mb={8}>
-        GaragePro
-      </Text>
+      <Flex align="center" mb={8}>
+        <Image src="/full-logo.png" alt="Garage branding" maxH="40px" />
+      </Flex>
       <VStack align="stretch" spacing={1} color={textColor}>
         {navItems.map((item) => {
           const showInventoryBadge = item.to === '/inventory' && (inventoryAlertsCount ?? 0) > 0;

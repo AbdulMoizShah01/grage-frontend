@@ -9,6 +9,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
   Badge,
   Box,
   Button,
@@ -41,7 +48,7 @@ import {
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { MdAdd, MdCheckCircle, MdPrint, MdRemove } from 'react-icons/md';
-import { FiTrash2 } from 'react-icons/fi';
+import { FiTrash2, FiEdit2 } from 'react-icons/fi';
 
 import { AppShell } from '../components/shell/AppShell';
 import { useWorkOrders, WorkOrderInput } from '../hooks/useWorkOrders';
@@ -54,6 +61,7 @@ import { useDashboardSummary } from '../hooks/useDashboardSummary';
 import { WorkOrderStatus } from '../types/enums';
 import { WorkOrder } from '../types/api';
 import { formatCurrency } from '../utils/formatting';
+import { buildInvoiceCode, downloadInvoice } from '../utils/invoices';
 
 const LINE_ITEM_TYPES = [
   { value: 'SERVICE', label: 'Service' },
@@ -75,22 +83,14 @@ const createLineItem = (id: number): LineItemState => ({
   id,
   type: 'SERVICE',
   name: '',
-  quantity: 1,
+  quantity: 0,
   unitPrice: '',
   catalogId: ''
 });
 
 const customerInitialState = {
   fullName: '',
-  phone: '',
-  email: '',
-  company: '',
-  notes: '',
-  addressLine1: '',
-  addressLine2: '',
-  city: '',
-  state: '',
-  postalCode: ''
+  phone: ''
 };
 
 const vehicleInitialState = {
@@ -99,11 +99,10 @@ const vehicleInitialState = {
   model: '',
   year: new Date().getFullYear().toString(),
   licensePlate: '',
-  mileage: '',
   color: '',
-  engine: '',
   notes: ''
 };
+const VAT_RATE = 0.18;
 const nowLocalIso = () => new Date().toISOString().slice(0, 16);
 const combineName = (first: string, last: string) => `${first} ${last}`.trim();
 const normalizePhone = (value: string) => value.replace(/\D/g, '');
@@ -178,7 +177,9 @@ export const WorkOrdersPage = () => {
     deleteWorkOrder,
     isDeleting,
     completeWorkOrder,
-    isCompleting
+    isCompleting,
+    updateWorkOrder,
+    isUpdating
   } = useWorkOrders({ status: 'ALL', historical: false });
   const {
     data: vehicles,
@@ -202,12 +203,25 @@ export const WorkOrdersPage = () => {
   const [arrivalDate, setArrivalDate] = useState(nowLocalIso());
   const [scheduledDate, setScheduledDate] = useState('');
   const [parkingCharge, setParkingCharge] = useState('');
-  const [taxes, setTaxes] = useState('');
   const [discount, setDiscount] = useState('');
   const [workerId, setWorkerId] = useState('');
   const [lineItems, setLineItems] = useState<LineItemState[]>([createLineItem(1)]);
   const [workOrderPendingDelete, setWorkOrderPendingDelete] = useState<WorkOrder | null>(null);
   const [completingId, setCompletingId] = useState<number | null>(null);
+  const editDisclosure = useDisclosure();
+  const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
+  const [editFormState, setEditFormState] = useState({
+    description: '',
+    status: WorkOrderStatus.IN_PROGRESS as WorkOrderStatus,
+    arrivalDate: '',
+    scheduledDate: '',
+    completedDate: '',
+    laborCost: '',
+    partsCost: '',
+    parkingCharge: '',
+    discount: '',
+    notes: ''
+  });
   const customerOptions = useMemo(() => customers ?? [], [customers]);
   const vehicleOptions = useMemo(() => vehicles ?? [], [vehicles]);
   const serviceOptions = useMemo(() => services ?? [], [services]);
@@ -231,8 +245,8 @@ export const WorkOrdersPage = () => {
   const partsTotal = lineItems
     .filter((item) => item.type === 'PART')
     .reduce((sum, item) => sum + item.quantity * (Number(item.unitPrice) || 0), 0);
-  const taxesValue = Number(taxes) || 0;
   const discountValue = Number(discount) || 0;
+  const taxesValue = Math.max((serviceTotal + partsTotal - discountValue) * VAT_RATE, 0);
   const parkingChargeValue = Number(parkingCharge) || 0;
   const grandTotal = serviceTotal + partsTotal + taxesValue + parkingChargeValue - discountValue;
 
@@ -256,73 +270,63 @@ export const WorkOrdersPage = () => {
       }));
     };
 
-  const handleLineItemChange = (id: number, field: keyof LineItemState, value: string | number) => {
-    setLineItems((previous) =>
-      previous.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
+const handleLineItemChange = (id: number, field: keyof LineItemState, value: string | number) => {
+  setLineItems((previous) =>
+    previous.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
 
-        if (field === 'type') {
-          return {
-            ...item,
-            type: value as LineItemType,
-            catalogId: '',
-            name: '',
-            unitPrice: ''
-          };
-        }
-
-        if (field === 'quantity') {
-          const quantityValue = ensurePositiveNumber(Number(value), 1);
-          return { ...item, quantity: quantityValue };
-        }
-
+      if (field === 'type') {
         return {
           ...item,
-          [field]: value
+          type: value as LineItemType,
+          catalogId: '',
+          name: '',
+          unitPrice: ''
         };
-      })
-    );
-  };
+      }
 
-  const handleCatalogSelect = (lineId: number, catalogId: string) => {
-    setLineItems((previous) =>
-      previous.map((item) => {
-        if (item.id !== lineId) {
-          return item;
-        }
+      if (field === 'quantity') {
+        const parsed = Number(value);
+        const quantityValue = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        return { ...item, quantity: quantityValue };
+      }
 
-        if (!catalogId) {
-          return { ...item, catalogId: '', name: item.name, unitPrice: item.unitPrice };
-        }
+      if (field === 'name') {
+        const typedValue = typeof value === 'string' ? value : String(value);
+        const dataset = item.type === 'SERVICE' ? serviceOptions : inventoryOptions;
+        const match = dataset.find(
+          (option) => option.name.trim().toLowerCase() === typedValue.trim().toLowerCase()
+        );
 
-        if (item.type === 'SERVICE') {
-          const match = serviceOptions.find((service) => `${service.id}` === catalogId);
+        const nextUnitPrice = () => {
           if (!match) {
-            return item;
+            return item.unitPrice;
           }
 
-          return {
-            ...item,
-            catalogId,
-            name: match.name,
-            unitPrice: match.defaultPrice ? String(match.defaultPrice) : item.unitPrice
-          };
-        }
+          if (item.type === 'SERVICE') {
+            const serviceMatch = match as (typeof serviceOptions)[number];
+            return serviceMatch.defaultPrice ? String(serviceMatch.defaultPrice) : item.unitPrice;
+          }
 
-        const match = inventoryOptions.find((inventoryItem) => `${inventoryItem.id}` === catalogId);
-        if (!match) {
-          return item;
-        }
+          const inventoryMatch = match as (typeof inventoryOptions)[number];
+          return inventoryMatch.unitPrice ? String(inventoryMatch.unitPrice) : item.unitPrice;
+        };
 
         return {
           ...item,
-          catalogId,
-          name: match.name,
-          unitPrice: match.unitPrice ? String(match.unitPrice) : item.unitPrice
+          name: typedValue,
+          catalogId: match ? String(match.id) : '',
+          unitPrice: nextUnitPrice()
         };
-      })
+      }
+
+      return {
+        ...item,
+        [field]: value
+      };
+    })
     );
   };
 
@@ -343,7 +347,6 @@ export const WorkOrdersPage = () => {
     setArrivalDate(nowLocalIso());
     setScheduledDate('');
     setParkingCharge('');
-    setTaxes('');
     setDiscount('');
     setWorkerId('');
     lineItemIdRef.current = 2;
@@ -400,15 +403,7 @@ export const WorkOrdersPage = () => {
       } else {
         const createdCustomer = await createCustomerMutation({
           fullName: normalizedFullName,
-          phone: normalizedPhone,
-          email: sanitizeOptional(customerForm.email) ?? null,
-          company: sanitizeOptional(customerForm.company) ?? null,
-          notes: sanitizeOptional(customerForm.notes) ?? null,
-          addressLine1: sanitizeOptional(customerForm.addressLine1) ?? null,
-          addressLine2: sanitizeOptional(customerForm.addressLine2) ?? null,
-          city: sanitizeOptional(customerForm.city) ?? null,
-          state: sanitizeOptional(customerForm.state) ?? null,
-          postalCode: sanitizeOptional(customerForm.postalCode) ?? null
+          phone: normalizedPhone
         });
         resolvedCustomerId = createdCustomer.id;
       }
@@ -432,7 +427,6 @@ export const WorkOrdersPage = () => {
       }
 
       const yearValue = Number(vehicleForm.year);
-      const mileageValue = vehicleForm.mileage ? Number(vehicleForm.mileage) : undefined;
 
       let resolvedVehicleId: number;
 
@@ -445,10 +439,7 @@ export const WorkOrdersPage = () => {
           model: vehicleForm.model.trim(),
           year: ensurePositiveNumber(yearValue, new Date().getFullYear()),
           licensePlate: sanitizeOptional(vehicleForm.licensePlate) ?? null,
-          mileage:
-            mileageValue !== undefined && Number.isFinite(mileageValue) ? mileageValue : null,
           color: sanitizeOptional(vehicleForm.color) ?? null,
-          engine: sanitizeOptional(vehicleForm.engine) ?? null,
           notes: sanitizeOptional(vehicleForm.notes) ?? null,
           customerId: resolvedCustomerId
         });
@@ -463,7 +454,6 @@ export const WorkOrdersPage = () => {
         quotedAt: arrivalDate,
         scheduledDate: scheduledDate || null,
         parkingCharge: parkingChargeValue || undefined,
-        taxes: taxesValue || undefined,
         discount: discountValue || undefined,
         notes: notes.trim() ? notes.trim() : undefined,
         laborCost: serviceTotal,
@@ -491,75 +481,80 @@ export const WorkOrdersPage = () => {
       });
     }
   };
-  const handlePrintQuote = (order: WorkOrder) => {
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) {
-      toast({ status: 'warning', title: 'Allow pop-ups to print the quotation.' });
+  const openEditDrawer = (order: WorkOrder) => {
+    setEditingOrder(order);
+    setEditFormState({
+      description: order.description,
+      status: order.status,
+      arrivalDate: order.arrivalDate ? order.arrivalDate.slice(0, 16) : nowLocalIso(),
+      scheduledDate: order.scheduledDate ? order.scheduledDate.slice(0, 16) : '',
+      completedDate: order.completedDate ? order.completedDate.slice(0, 16) : '',
+      laborCost: String(Number(order.laborCost) || ''),
+      partsCost: String(Number(order.partsCost) || ''),
+      parkingCharge: String(Number(order.parkingCharge) || ''),
+      discount: String(Number(order.discount) || ''),
+      notes: order.notes ?? ''
+    });
+    editDisclosure.onOpen();
+  };
+
+  const closeEditDrawer = () => {
+    setEditingOrder(null);
+    editDisclosure.onClose();
+  };
+
+  const handleEditFieldChange =
+    (field: keyof typeof editFormState) =>
+    (value: string) => {
+      setEditFormState((previous) => ({
+        ...previous,
+        [field]: value
+      }));
+    };
+
+  const handleSubmitEdit = async () => {
+    if (!editingOrder) {
       return;
     }
 
-    const customerName = order.customer ? combineName(order.customer.firstName, order.customer.lastName) : 'Unassigned';
-    const vehicleLabel = `${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`;
-    const lineRows = order.lineItems
-      .map(
-        (item) => `
-          <tr>
-            <td>${item.description}</td>
-            <td>${item.quantity}</td>
-            <td>${formatCurrency(Number(item.unitPrice))}</td>
-            <td>${formatCurrency(Number(item.lineTotal))}</td>
-          </tr>`
-      )
-      .join('\n');
-
-    win.document.write(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Quotation ${order.code}</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 24px; color: #1a202c; }
-      h1 { margin-bottom: 4px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-      th, td { border: 1px solid #cbd5f5; padding: 8px; text-align: left; }
-      th { background: #f1f5f9; }
-      .meta { margin-top: 12px; }
-      .totals { margin-top: 24px; text-align: right; }
-    </style>
-  </head>
-  <body>
-    <h1>Quotation ${order.code}</h1>
-    <div class="meta">
-      <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-      <p><strong>Customer:</strong> ${customerName}</p>
-      <p><strong>Vehicle:</strong> ${vehicleLabel}</p>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Line Item</th>
-          <th>Qty</th>
-          <th>Unit Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${lineRows}
-      </tbody>
-    </table>
-    <div class="totals">
-      <p><strong>Labour:</strong> ${formatCurrency(Number(order.laborCost))}</p>
-      <p><strong>Parts:</strong> ${formatCurrency(Number(order.partsCost))}</p>
-      <p><strong>Taxes:</strong> ${formatCurrency(Number(order.taxes))}</p>
-      <p><strong>Parking:</strong> ${formatCurrency(Number(order.parkingCharge))}</p>
-      <p><strong>Discount:</strong> ${formatCurrency(Number(order.discount))}</p>
-      <h2>Total: ${formatCurrency(Number(order.totalCost))}</h2>
-    </div>
-  </body>
-</html>`);
-    win.document.close();
-    win.focus();
-    win.print();
+    try {
+      await updateWorkOrder({
+        id: editingOrder.id,
+        payload: {
+          description: editFormState.description.trim(),
+          status: editFormState.status as WorkOrderStatus,
+          arrivalDate: editFormState.arrivalDate,
+          scheduledDate: editFormState.scheduledDate || undefined,
+          completedDate: editFormState.completedDate || undefined,
+          laborCost: Number(editFormState.laborCost) || undefined,
+          partsCost: Number(editFormState.partsCost) || undefined,
+          parkingCharge: Number(editFormState.parkingCharge) || undefined,
+          discount: Number(editFormState.discount) || undefined,
+          notes: editFormState.notes.trim() || undefined
+        }
+      });
+      toast({ status: 'success', title: 'Work order updated.' });
+      closeEditDrawer();
+    } catch (error) {
+      toast({
+        status: 'error',
+        title: 'Unable to update work order.',
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
+    }
+  };
+    const handleGenerateInvoice = async (order: WorkOrder) => {
+    try {
+      const invoiceName = buildInvoiceCode(order).replace(/\//g, '-');
+      await downloadInvoice(order.id, invoiceName);
+      toast({ status: 'success', title: 'Invoice ready for download.' });
+    } catch (error) {
+      toast({
+        status: 'error',
+        title: 'Unable to generate invoice.',
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
+    }
   };
 
   const handleCompleteWorkOrder = async (order: WorkOrder) => {
@@ -647,38 +642,6 @@ export const WorkOrdersPage = () => {
                 <FormLabel>Phone</FormLabel>
                 <Input value={customerForm.phone} onChange={handleCustomerFieldChange('phone')} placeholder="Contact number" />
               </FormControl>
-              <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input value={customerForm.email} onChange={handleCustomerFieldChange('email')} placeholder="Optional email" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Company</FormLabel>
-                <Input value={customerForm.company} onChange={handleCustomerFieldChange('company')} placeholder="Optional company" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Address Line 1</FormLabel>
-                <Input value={customerForm.addressLine1} onChange={handleCustomerFieldChange('addressLine1')} placeholder="Street address" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Address Line 2</FormLabel>
-                <Input value={customerForm.addressLine2} onChange={handleCustomerFieldChange('addressLine2')} placeholder="Suite, unit, etc." />
-              </FormControl>
-              <FormControl>
-                <FormLabel>City</FormLabel>
-                <Input value={customerForm.city} onChange={handleCustomerFieldChange('city')} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>State / Province</FormLabel>
-                <Input value={customerForm.state} onChange={handleCustomerFieldChange('state')} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Postal Code</FormLabel>
-                <Input value={customerForm.postalCode} onChange={handleCustomerFieldChange('postalCode')} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Customer Notes</FormLabel>
-                <Textarea value={customerForm.notes} onChange={handleCustomerFieldChange('notes')} placeholder="Internal notes about this customer" rows={3} />
-              </FormControl>
             </SimpleGrid>
             <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.500')} mt={6}>
               Need advanced customer management?{' '}
@@ -723,16 +686,8 @@ export const WorkOrdersPage = () => {
                 <Input value={vehicleForm.year} onChange={handleVehicleFieldChange('year')} placeholder="Year" />
               </FormControl>
               <FormControl>
-                <FormLabel>Mileage</FormLabel>
-                <Input value={vehicleForm.mileage} onChange={handleVehicleFieldChange('mileage')} placeholder="Current mileage" />
-              </FormControl>
-              <FormControl>
                 <FormLabel>Color</FormLabel>
                 <Input value={vehicleForm.color} onChange={handleVehicleFieldChange('color')} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Engine</FormLabel>
-                <Input value={vehicleForm.engine} onChange={handleVehicleFieldChange('engine')} placeholder="Engine details" />
               </FormControl>
               <FormControl>
                 <FormLabel>Vehicle Notes</FormLabel>
@@ -786,16 +741,10 @@ export const WorkOrdersPage = () => {
               <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Private notes for the workshop team" rows={3} />
             </FormControl>
             <Divider />
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               <FormControl>
                 <FormLabel>Parking Charge</FormLabel>
                 <NumberInput min={0} value={parkingCharge} onChange={(value) => setParkingCharge(value)} clampValueOnBlur={false}>
-                  <NumberInputField />
-                </NumberInput>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Taxes</FormLabel>
-                <NumberInput min={0} value={taxes} onChange={(value) => setTaxes(value)} clampValueOnBlur={false}>
                   <NumberInputField />
                 </NumberInput>
               </FormControl>
@@ -827,14 +776,9 @@ export const WorkOrdersPage = () => {
         </Box>
       </SimpleGrid>
       <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6} mb={6}>
-        <HStack justify="space-between" mb={4}>
-          <Text fontSize="lg" fontWeight="semibold">
-            Services & Parts
-          </Text>
-          <Button size="sm" leftIcon={<MdAdd />} onClick={addLineItem}>
-            Add Line
-          </Button>
-        </HStack>
+        <Text fontSize="lg" fontWeight="semibold" mb={4}>
+          Services & Parts
+        </Text>
         <VStack align="stretch" spacing={4}>
           {lineItems.map((item) => (
             <Box key={item.id} borderWidth="1px" borderRadius="lg" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={4}>
@@ -848,7 +792,7 @@ export const WorkOrdersPage = () => {
                   isDisabled={lineItems.length === 1}
                 />
               </HStack>
-              <SimpleGrid columns={{ base: 1, md: 5 }} spacing={4}>
+              <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
                 <FormControl>
                   <FormLabel>Type</FormLabel>
                   <Select value={item.type} onChange={(event) => handleLineItemChange(item.id, 'type', event.target.value as LineItemType)}>
@@ -860,30 +804,26 @@ export const WorkOrdersPage = () => {
                   </Select>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Catalog</FormLabel>
-                  <Select placeholder="Optional" value={item.catalogId} onChange={(event) => handleCatalogSelect(item.id, event.target.value)}>
-                    {(item.type === 'SERVICE' ? serviceOptions : inventoryOptions).map((catalogItem) => (
-                      <option key={catalogItem.id} value={catalogItem.id}>
-                        {catalogItem.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Item</FormLabel>
                   <Input
+                    list={`line-item-${item.id}`}
                     value={item.name}
                     onChange={(event) => handleLineItemChange(item.id, 'name', event.target.value)}
-                    placeholder={item.type === 'SERVICE' ? 'Service description' : 'Part name'}
+                    placeholder={item.type === 'SERVICE' ? 'Service name' : 'Part name'}
                   />
+                  <datalist id={`line-item-${item.id}`}>
+                    {(item.type === 'SERVICE' ? serviceOptions : inventoryOptions).map((option) => (
+                      <option key={option.id} value={option.name} />
+                    ))}
+                  </datalist>
                 </FormControl>
                 <FormControl>
                   <FormLabel>Quantity</FormLabel>
                   <NumberInput
-                    min={1}
+                    min={0}
                     value={item.quantity}
                     onChange={(_, valueNumber) => {
-                      const safeValue = Number.isFinite(valueNumber) ? Math.max(1, valueNumber) : item.quantity;
+                      const safeValue = Number.isFinite(valueNumber) ? Math.max(0, valueNumber) : item.quantity;
                       handleLineItemChange(item.id, 'quantity', safeValue);
                     }}
                   >
@@ -904,6 +844,9 @@ export const WorkOrdersPage = () => {
               </SimpleGrid>
             </Box>
           ))}
+          <Button variant="outline" leftIcon={<MdAdd />} onClick={addLineItem} alignSelf="flex-start">
+            Add
+          </Button>
         </VStack>
       </Box>
       <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6}>
@@ -982,6 +925,9 @@ export const WorkOrdersPage = () => {
                   </Td>
                   <Td>
                     <HStack justify="flex-end" spacing={2}>
+                      <Tooltip label="Edit work order">
+                        <IconButton aria-label="Edit work order" icon={<FiEdit2 />} size="sm" variant="ghost" onClick={() => openEditDrawer(order)} />
+                      </Tooltip>
                       <Tooltip label="Mark as completed">
                         <IconButton
                           aria-label="Mark work order as completed"
@@ -994,12 +940,12 @@ export const WorkOrdersPage = () => {
                           isLoading={completingId === order.id}
                         />
                       </Tooltip>
-                      <Tooltip label="Print quotation">
+                      <Tooltip label="Generate invoice">
                         <IconButton
-                          aria-label="Print quotation"
+                          aria-label="Generate invoice"
                           icon={<MdPrint />}
                           size="sm"
-                          onClick={() => handlePrintQuote(order)}
+                          onClick={() => handleGenerateInvoice(order)}
                         />
                       </Tooltip>
                       <Tooltip label="Delete work order">
@@ -1021,6 +967,101 @@ export const WorkOrdersPage = () => {
           </Tbody>
         </Table>
       </Box>
+      <Drawer isOpen={editDisclosure.isOpen} placement="right" onClose={closeEditDrawer} size="md">
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Edit Work Order</DrawerHeader>
+          <DrawerBody>
+            {editingOrder ? (
+              <VStack spacing={4} align="stretch">
+                <FormControl isRequired>
+                  <FormLabel>Description</FormLabel>
+                  <Input value={editFormState.description} onChange={(event) => handleEditFieldChange('description')(event.target.value)} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Status</FormLabel>
+                  <Select value={editFormState.status} onChange={(event) => handleEditFieldChange('status')(event.target.value)}>
+                    {Object.values(WorkOrderStatus).map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Arrival</FormLabel>
+                  <Input
+                    type="datetime-local"
+                    value={editFormState.arrivalDate}
+                    onChange={(event) => handleEditFieldChange('arrivalDate')(event.target.value)}
+                  />
+                </FormControl>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel>Scheduled</FormLabel>
+                    <Input
+                      type="datetime-local"
+                      value={editFormState.scheduledDate}
+                      onChange={(event) => handleEditFieldChange('scheduledDate')(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Completed</FormLabel>
+                    <Input
+                      type="datetime-local"
+                      value={editFormState.completedDate}
+                      onChange={(event) => handleEditFieldChange('completedDate')(event.target.value)}
+                    />
+                  </FormControl>
+                </SimpleGrid>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel>Labour Cost</FormLabel>
+                    <NumberInput min={0} value={editFormState.laborCost} onChange={(value) => handleEditFieldChange('laborCost')(value)}>
+                      <NumberInputField />
+                    </NumberInput>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Parts Cost</FormLabel>
+                    <NumberInput min={0} value={editFormState.partsCost} onChange={(value) => handleEditFieldChange('partsCost')(value)}>
+                      <NumberInputField />
+                    </NumberInput>
+                  </FormControl>
+                </SimpleGrid>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel>Parking Charge</FormLabel>
+                    <NumberInput min={0} value={editFormState.parkingCharge} onChange={(value) => handleEditFieldChange('parkingCharge')(value)}>
+                      <NumberInputField />
+                    </NumberInput>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Discount</FormLabel>
+                    <NumberInput min={0} value={editFormState.discount} onChange={(value) => handleEditFieldChange('discount')(value)}>
+                      <NumberInputField />
+                    </NumberInput>
+                  </FormControl>
+                </SimpleGrid>
+                <FormControl>
+                  <FormLabel>Notes</FormLabel>
+                  <Textarea value={editFormState.notes} onChange={(event) => handleEditFieldChange('notes')(event.target.value)} />
+                </FormControl>
+              </VStack>
+            ) : (
+              <Text color={useColorModeValue('gray.600', 'gray.400')}>Select a work order to update.</Text>
+            )}
+          </DrawerBody>
+          <DrawerFooter>
+            <Button variant="ghost" mr={3} onClick={closeEditDrawer}>
+              Cancel
+            </Button>
+            <Button colorScheme="brand" onClick={handleSubmitEdit} isLoading={isUpdating} isDisabled={!editingOrder}>
+              Save changes
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
       <AlertDialog
         isOpen={deleteDisclosure.isOpen}
         onClose={closeDeleteDialog}

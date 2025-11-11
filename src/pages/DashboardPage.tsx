@@ -18,9 +18,12 @@ export const DashboardPage = () => {
       title="Dashboard Overview"
       inventoryAlertsCount={data?.inventoryAlertsCount}
       actions={
-        <Button onClick={() => navigate('/work-orders/history')}>
-          Work Order History
-        </Button>
+        <HStack spacing={3}>
+          <Button variant="outline" onClick={() => navigate('/insights')}>
+            View Insights
+          </Button>
+          <Button onClick={() => navigate('/work-orders/history')}>Work Order History</Button>
+        </HStack>
       }
     >
       {isLoading ? (
@@ -38,6 +41,11 @@ export const DashboardPage = () => {
               <StatCard label="Vehicles" value={data.totals.vehicles} />
               <StatCard label="Open Work Orders" value={data.totals.openWorkOrders} />
               <StatCard label="Inventory Alerts" value={data.inventoryAlertsCount} helperText="At or below threshold" />
+            </SimpleGrid>
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={6} mb={6}>
+              <StatCard label="Net Earned (6 mo)" value={formatCurrency(data?.financials?.netEarned)} />
+              <StatCard label="Net Expense (6 mo)" value={formatCurrency(data?.financials?.netExpense)} />
+              <StatCard label="Net Profit (6 mo)" value={formatCurrency(data?.financials?.netProfit)} />
             </SimpleGrid>
 
             <Box bg={cardBg} borderRadius="xl" borderWidth="1px" borderColor={borderColor} p={6} mb={6}>

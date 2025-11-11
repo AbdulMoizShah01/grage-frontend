@@ -35,12 +35,14 @@ import {
   VStack
 } from '@chakra-ui/react';
 import { FiDownload, FiRefreshCcw, FiSearch } from 'react-icons/fi';
+import { MdPrint } from 'react-icons/md';
 
 import { AppShell } from '../components/shell/AppShell';
 import { useWorkOrders } from '../hooks/useWorkOrders';
 import { useDashboardSummary } from '../hooks/useDashboardSummary';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatCurrency } from '../utils/formatting';
+import { buildInvoiceCode, downloadInvoice } from '../utils/invoices';
 import { WorkOrderStatus } from '../types/enums';
 import { WorkOrder } from '../types/api';
 
@@ -168,6 +170,20 @@ export const WorkOrderHistoryPage = () => {
 
   const detail = detailQuery.data ?? selectedOrderSnapshot ?? undefined;
 
+  const handleDownloadInvoice = async (order: WorkOrder) => {
+    try {
+      const invoiceName = buildInvoiceCode(order).replace(/\//g, '-');
+      await downloadInvoice(order.id, invoiceName);
+      toast({ status: 'success', title: 'Invoice generated.' });
+    } catch (error) {
+      toast({
+        status: 'error',
+        title: 'Unable to generate invoice.',
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
+    }
+  };
+
   return (
     <AppShell
       title="Work Order History"
@@ -204,11 +220,7 @@ export const WorkOrderHistoryPage = () => {
           <InputLeftElement pointerEvents="none">
             <FiSearch color="var(--chakra-colors-gray-400)" />
           </InputLeftElement>
-          <Input
-            placeholder="Search by code, customer, or vehicle"
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
+          <Input placeholder="Search by code, customer, plate, make, model, or VIN" value={searchTerm} onChange={handleSearchChange} />
         </InputGroup>
         <HStack spacing={3} align={{ base: 'flex-start', md: 'center' }}>
           <Select
@@ -249,6 +261,7 @@ export const WorkOrderHistoryPage = () => {
                 <Th>Vehicle</Th>
                 <Th>Completed</Th>
                 <Th isNumeric>Total</Th>
+                <Th textAlign="right">Invoice</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -275,6 +288,20 @@ export const WorkOrderHistoryPage = () => {
                     </Td>
                     <Td>{formatDate(order.completedDate ?? order.updatedAt)}</Td>
                     <Td isNumeric>{formatCurrency(Number(order.totalCost))}</Td>
+                    <Td textAlign="right">
+                      <Tooltip label="Download invoice">
+                        <IconButton
+                          aria-label="Download invoice"
+                          icon={<MdPrint />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDownloadInvoice(order);
+                          }}
+                        />
+                      </Tooltip>
+                    </Td>
                   </Tr>
                 ))
               )}
@@ -293,6 +320,11 @@ export const WorkOrderHistoryPage = () => {
               <Spinner />
             ) : detail ? (
               <Stack spacing={6}>
+                <HStack justify="flex-end">
+                  <Button leftIcon={<MdPrint />} variant="outline" onClick={() => handleDownloadInvoice(detail)}>
+                    Export Invoice
+                  </Button>
+                </HStack>
                 <Box>
                   <Text fontWeight="medium" mb={2}>
                     Overview

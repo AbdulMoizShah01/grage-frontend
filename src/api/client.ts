@@ -19,30 +19,19 @@ export class ApiError extends Error {
   }
 }
 
-const envUrl = import.meta.env.VITE_API_URL;
-// Fallback to the production Railway host if the env var wasn't set at build time.
-const baseUrl =
-  envUrl ?? (import.meta.env.MODE === 'development' ? '/api' : 'https://garage-backend-production-ee79.up.railway.app/api');
+const baseUrl = import.meta.env.VITE_API_URL ?? '/api';
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
   options: RequestOptions<TBody> = {}
 ): Promise<TResponse> {
   const { method = 'GET', body, signal } = options;
-  // Normalize URL to avoid double slashes when baseUrl ends with a slash
-  const normalizedBase = baseUrl.replace(/\/+$/, '');
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = `${normalizedBase}${normalizedPath}`;
-  console.log('Making API request to:', url);
 
-  const response = await fetch(url, {
+  const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Content-Type': 'application/json'
     },
-    mode: 'cors',
-    credentials: 'omit',
     body: body ? JSON.stringify(body) : undefined,
     signal
   });

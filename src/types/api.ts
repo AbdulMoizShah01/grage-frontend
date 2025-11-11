@@ -99,8 +99,12 @@ export type ServiceItem = {
 export type Worker = {
   id: number;
   name: string;
-  email?: string | null;
   phone?: string | null;
+  salaryAmount: string;
+  salaryFrequency: 'DAILY' | 'MONTHLY';
+  lastSalaryPaidAt?: string | null;
+  isSalaryDue: boolean;
+  nextSalaryDueOn: string;
   commuteExpense: string;
   shiftExpense: string;
   mealExpense: string;
@@ -145,6 +149,11 @@ export type DashboardSummary = {
     openWorkOrders: number;
   };
   revenueLast30Days: number;
+  financials: {
+    netEarned: number;
+    netExpense: number;
+    netProfit: number;
+  };
   recentCompletedWorkOrders: Array<{
     id: number;
     code: string;
@@ -166,5 +175,44 @@ export type DashboardSummary = {
         status: WorkOrderStatus;
       };
     } | null;
+  }>;
+};
+
+export type MetadataRecord = {
+  id: number;
+  customer: Customer;
+  vehicle: Vehicle;
+  recentWorkOrders: Array<{
+    id: number;
+    code: string;
+    status: WorkOrderStatus;
+    createdAt: string;
+    updatedAt: string;
+    totalCost: string | number;
+  }>;
+  stats: {
+    totalWorkOrders: number;
+    openWorkOrders: number;
+    lastServiceDate: string | null;
+    outstandingBalance: number;
+  };
+};
+
+export type InsightsSummary = {
+  netEarned: number;
+  netExpense: number;
+  netProfit: number;
+  vehicleCount: number;
+  partsExpense: number;
+  servicesSold: number;
+  partsSold: number;
+  workOrdersByStatus: Array<{
+    status: WorkOrderStatus;
+    count: number;
+  }>;
+  monthlyRevenue: Array<{
+    label: string;
+    revenue: number;
+    expenses: number;
   }>;
 };

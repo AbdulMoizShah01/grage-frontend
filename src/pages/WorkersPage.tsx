@@ -38,6 +38,7 @@ import {
   SimpleGrid,
   NumberInput,
   NumberInputField,
+  Select,
   useDisclosure,
   useToast,
   useColorModeValue,
@@ -59,8 +60,9 @@ import { formatCurrency } from '../utils/formatting';
 
 const initialFormState = {
   name: '',
-  email: '',
   phone: '',
+  salaryAmount: '',
+  salaryFrequency: 'MONTHLY',
   commuteExpense: '',
   shiftExpense: '',
   mealExpense: '',
@@ -134,6 +136,7 @@ export const WorkersPage = () => {
   const [workerPendingDelete, setWorkerPendingDelete] = useState<Worker | null>(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [salaryUpdatingId, setSalaryUpdatingId] = useState<number | null>(null);
 
   const {
     data: workers,
@@ -144,7 +147,9 @@ export const WorkersPage = () => {
     updateWorker,
     isUpdating,
     deleteWorker,
-    isDeleting
+    isDeleting,
+    updateSalaryStatus,
+    isUpdatingSalaryStatus
   } = useWorkers();
 
   const { data: summary } = useDashboardSummary();
@@ -176,21 +181,21 @@ export const WorkersPage = () => {
 
     return sortedWorkers.filter((worker) => {
       const matchesName = worker.name.toLowerCase().includes(term);
-      const matchesEmail = worker.email?.toLowerCase().includes(term) ?? false;
       const matchesPhone = worker.phone?.toLowerCase().includes(term) ?? false;
-      return matchesName || matchesEmail || matchesPhone;
+      return matchesName || matchesPhone;
     });
   }, [sortedWorkers, searchTerm]);
+  const salaryAlerts = useMemo(() => sortedWorkers.filter((worker) => worker.isSalaryDue), [sortedWorkers]);
 
   const handleCreateFieldChange =
     (field: keyof typeof initialFormState) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setCreateFormState((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
   const handleEditFieldChange =
     (field: keyof typeof initialFormState) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setEditFormState((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
@@ -211,8 +216,15 @@ export const WorkersPage = () => {
     const shiftValue = parseExpenseField(createFormState.shiftExpense);
     const mealValue = parseExpenseField(createFormState.mealExpense);
     const otherValue = parseExpenseField(createFormState.otherExpense);
+    const salaryValue = parseExpenseField(createFormState.salaryAmount);
 
-    if (commuteValue === null || shiftValue === null || mealValue === null || otherValue === null) {
+    if (
+      commuteValue === null ||
+      shiftValue === null ||
+      mealValue === null ||
+      otherValue === null ||
+      salaryValue === null
+    ) {
       toast({
         status: 'warning',
         title: 'Invalid expense amount',
@@ -224,8 +236,9 @@ export const WorkersPage = () => {
     try {
       await createWorker({
         name: createFormState.name.trim(),
-        email: sanitizeOptionalField(createFormState.email),
         phone: sanitizeOptionalField(createFormState.phone),
+        salaryAmount: salaryValue ?? undefined,
+        salaryFrequency: createFormState.salaryFrequency as 'DAILY' | 'MONTHLY',
         commuteExpense: commuteValue ?? undefined,
         shiftExpense: shiftValue ?? undefined,
         mealExpense: mealValue ?? undefined,
@@ -247,12 +260,32 @@ export const WorkersPage = () => {
     }
   };
 
+  const handleSalaryStatusChange = async (worker: Worker, markAs: 'PAID' | 'UNPAID') => {
+    try {
+      setSalaryUpdatingId(worker.id);
+      await updateSalaryStatus({ id: worker.id, markAs });
+      toast({
+        status: 'success',
+        title: `Marked ${worker.name} as ${markAs === 'PAID' ? 'paid' : 'unpaid'}.`
+      });
+    } catch (error) {
+      toast({
+        status: 'error',
+        title: 'Unable to update salary status.',
+        description: getErrorMessage(error, 'Please try again.')
+      });
+    } finally {
+      setSalaryUpdatingId(null);
+    }
+  };
+
   const openEditModal = (worker: Worker) => {
     setEditingWorker(worker);
     setEditFormState({
       name: worker.name,
-      email: worker.email ?? '—',
-      phone: worker.phone ?? '—',
+      phone: worker.phone ?? '',
+      salaryAmount: worker.salaryAmount ?? '',
+      salaryFrequency: worker.salaryFrequency,
       commuteExpense: worker.commuteExpense ?? '',
       shiftExpense: worker.shiftExpense ?? '',
       mealExpense: worker.mealExpense ?? '',
@@ -294,7 +327,6 @@ export const WorkersPage = () => {
         id: editingWorker.id,
         payload: {
           name: editFormState.name.trim(),
-          email: sanitizeOptionalField(editFormState.email),
           phone: sanitizeOptionalField(editFormState.phone),
           commuteExpense: commuteValue ?? undefined,
           shiftExpense: shiftValue ?? undefined,
@@ -381,6 +413,12 @@ export const WorkersPage = () => {
       }
       inventoryAlertsCount={summary?.inventoryAlertsCount}
     >
+      {salaryAlerts.length > 0 ? (
+        <Alert status="warning" borderRadius="md" mb={4}>
+          <AlertIcon />
+          Salaries are due for {salaryAlerts.length} technician{salaryAlerts.length > 1 ? 's' : ''}. Use the action buttons to mark them as paid when processed.
+        </Alert>
+      ) : null}
       {isLoading ? (
         <Spinner />
       ) : error ? (
@@ -415,6 +453,7 @@ export const WorkersPage = () => {
                 <Th>Contact</Th>
                 <Th isNumeric>Jobs Completed</Th>
                 <Th isNumeric>Services Delivered</Th>
+                <Th>Salary</Th>
                 <Th isNumeric>Total Expenses</Th>
                 <Th textAlign="right">Actions</Th>
               </Tr>
@@ -422,7 +461,7 @@ export const WorkersPage = () => {
             <Tbody>
               {filteredWorkers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={6}>
+                  <Td colSpan={7}>
                     <Text color={mutedText}>
                       {searchTerm.trim()
                         ? 'No workers match your search.'
@@ -438,12 +477,36 @@ export const WorkersPage = () => {
                     </Td>
                     <Td>
                       <VStack align="flex-start" spacing={0}>
-                        <Text>{worker.email ?? '—'}</Text>
                         <Text>{worker.phone ?? '—'}</Text>
+                        <Text fontSize="xs" color={mutedText}>
+                          Next due: {worker.nextSalaryDueOn ? new Date(worker.nextSalaryDueOn).toLocaleDateString() : 'N/A'}
+                        </Text>
                       </VStack>
                     </Td>
                     <Td isNumeric>{worker.totalJobs}</Td>
                     <Td isNumeric>{worker.totalServices}</Td>
+                    <Td>
+                      <VStack align="flex-start" spacing={1}>
+                        <Text fontWeight="medium">
+                          {worker.salaryAmount ? formatCurrency(Number(worker.salaryAmount)) : '—'}
+                        </Text>
+                        <Text fontSize="xs" color={worker.isSalaryDue ? 'orange.400' : mutedText}>
+                          {worker.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          colorScheme={worker.isSalaryDue ? 'orange' : 'green'}
+                          isLoading={salaryUpdatingId === worker.id && isUpdatingSalaryStatus}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleSalaryStatusChange(worker, worker.isSalaryDue ? 'PAID' : 'UNPAID');
+                          }}
+                        >
+                          {worker.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
+                        </Button>
+                      </VStack>
+                    </Td>
                     <Td isNumeric>{formatCurrency(getTotalExpenses(worker))}</Td>
                     <Td>
                       <HStack justify="flex-end" spacing={2}>
@@ -500,16 +563,33 @@ export const WorkersPage = () => {
             <FormLabel>Name</FormLabel>
             <Input value={createFormState.name} onChange={handleCreateFieldChange('name')} />
           </FormControl>
-          <HStack spacing={4} w="100%">
+          <FormControl>
+            <FormLabel>Phone</FormLabel>
+            <Input value={createFormState.phone} onChange={handleCreateFieldChange('phone')} />
+          </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
             <FormControl>
-              <FormLabel>Email</FormLabel>
-              <Input type="email" value={createFormState.email} onChange={handleCreateFieldChange('email')} />
+              <FormLabel>Salary Amount</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.salaryAmount}
+                onChange={(value) => setCreateFormState((prev) => ({ ...prev, salaryAmount: value }))}
+              >
+                <NumberInputField />
+              </NumberInput>
             </FormControl>
             <FormControl>
-              <FormLabel>Phone</FormLabel>
-              <Input value={createFormState.phone} onChange={handleCreateFieldChange('phone')} />
+              <FormLabel>Salary Frequency</FormLabel>
+              <Select
+                value={createFormState.salaryFrequency}
+                onChange={(event) => setCreateFormState((prev) => ({ ...prev, salaryFrequency: event.target.value }))}
+              >
+                <option value="DAILY">Daily</option>
+                <option value="MONTHLY">Monthly</option>
+              </Select>
             </FormControl>
-          </HStack>
+          </SimpleGrid>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
             <FormControl>
               <FormLabel>Commute Expense</FormLabel>
@@ -586,14 +666,33 @@ export const WorkersPage = () => {
             </FormControl>
             <HStack spacing={4} w="100%">
               <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" value={editFormState.email} onChange={handleEditFieldChange('email')} />
-              </FormControl>
-              <FormControl>
                 <FormLabel>Phone</FormLabel>
                 <Input value={editFormState.phone} onChange={handleEditFieldChange('phone')} />
               </FormControl>
             </HStack>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+              <FormControl>
+                <FormLabel>Salary Amount</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.salaryAmount}
+                  onChange={(value) => setEditFormState((prev) => ({ ...prev, salaryAmount: value }))}
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Salary Frequency</FormLabel>
+                <Select
+                  value={editFormState.salaryFrequency}
+                  onChange={(event) => setEditFormState((prev) => ({ ...prev, salaryFrequency: event.target.value }))}
+                >
+                  <option value="DAILY">Daily</option>
+                  <option value="MONTHLY">Monthly</option>
+                </Select>
+              </FormControl>
+            </SimpleGrid>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
               <FormControl>
                 <FormLabel>Commute Expense</FormLabel>
@@ -702,8 +801,33 @@ export const WorkersPage = () => {
                     Contact
                   </Text>
                   <Stack spacing={1} color={detailTextColor}>
-                    <Text>Email: {workerDetailQuery.data.email ?? '—'}</Text>
                     <Text>Phone: {workerDetailQuery.data.phone ?? '—'}</Text>
+                  </Stack>
+                </Box>
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Salary
+                  </Text>
+                  <Stack spacing={1} color={detailTextColor}>
+                    <Text>Amount: {workerDetailQuery.data.salaryAmount ? formatCurrency(Number(workerDetailQuery.data.salaryAmount)) : '—'}</Text>
+                    <Text>Frequency: {workerDetailQuery.data.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}</Text>
+                    <Text>
+                      Last paid:{' '}
+                      {workerDetailQuery.data.lastSalaryPaidAt
+                        ? formatDateTime(workerDetailQuery.data.lastSalaryPaidAt)
+                        : 'Not recorded'}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      colorScheme={workerDetailQuery.data.isSalaryDue ? 'orange' : 'green'}
+                      isLoading={salaryUpdatingId === workerDetailQuery.data.id && isUpdatingSalaryStatus}
+                      onClick={() =>
+                        handleSalaryStatusChange(workerDetailQuery.data, workerDetailQuery.data.isSalaryDue ? 'PAID' : 'UNPAID')
+                      }
+                    >
+                      {workerDetailQuery.data.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
+                    </Button>
                   </Stack>
                 </Box>
                 <Box>

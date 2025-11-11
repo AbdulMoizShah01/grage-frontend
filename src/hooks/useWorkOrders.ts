@@ -39,6 +39,7 @@ export type WorkOrderInput = {
   vehicleId: number;
   customerId?: number | null;
   description: string;
+  status?: WorkOrderStatus;
   arrivalDate: string;
   quotedAt?: string | null;
   scheduledDate?: string | null;
@@ -46,7 +47,6 @@ export type WorkOrderInput = {
   parkingCharge?: number;
   laborCost?: number;
   partsCost?: number;
-  taxes?: number;
   discount?: number;
   notes?: string | null;
   lineItems: CatalogLineItemInput[];
@@ -141,6 +141,19 @@ export const useWorkOrders = (initialFilters: WorkOrderFilters = {}) => {
       ...next
     }));
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<WorkOrderInput> }) =>
+      apiRequest<WorkOrder>(`/work-orders/${id}`, {
+        method: 'PUT',
+        body: payload
+      }),
+    onSuccess: (order) => {
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders', 'detail', order.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] });
+    }
+  });
+
   return {
     ...query,
     filters,
@@ -151,6 +164,8 @@ export const useWorkOrders = (initialFilters: WorkOrderFilters = {}) => {
     deleteWorkOrder: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
     completeWorkOrder: completeMutation.mutateAsync,
-    isCompleting: completeMutation.isPending
+    isCompleting: completeMutation.isPending,
+    updateWorkOrder: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending
   };
 };

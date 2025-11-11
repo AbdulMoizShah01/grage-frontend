@@ -8,11 +8,15 @@ import { WorkOrderHistoryPage } from './pages/WorkOrderHistoryPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { WorkersPage } from './pages/WorkersPage';
 import { ServicesPage } from './pages/ServicesPage';
+import { MetadataPage } from './pages/MetadataPage';
+import { InsightsPage } from './pages/InsightsPage';
 
 export const App = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<DashboardPage />} />
+      <Route path="/metadata" element={<MetadataPage />} />
+      <Route path="/insights" element={<InsightsPage />} />
       <Route path="/customers" element={<CustomersPage />} />
       <Route path="/vehicles" element={<VehiclesPage />} />
       <Route path="/work-orders" element={<WorkOrdersPage />} />

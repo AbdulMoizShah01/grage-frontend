@@ -6,8 +6,9 @@ import { Worker } from '../types/api';
 
 type WorkerInput = {
   name: string;
-  email?: string | null;
   phone?: string | null;
+  salaryAmount?: number;
+  salaryFrequency?: 'DAILY' | 'MONTHLY';
   commuteExpense?: number;
   shiftExpense?: number;
   mealExpense?: number;
@@ -45,6 +46,18 @@ export const useWorkers = () => {
     }
   });
 
+  const salaryStatusMutation = useMutation({
+    mutationFn: ({ id, markAs }: { id: number; markAs: 'PAID' | 'UNPAID' }) =>
+      apiRequest<Worker>(`/workers/${id}/salary-status`, {
+        method: 'POST',
+        body: { markAs }
+      }),
+    onSuccess: (worker) => {
+      queryClient.invalidateQueries({ queryKey: ['workers'] });
+      queryClient.invalidateQueries({ queryKey: ['worker', worker.id] });
+    }
+  });
+
   const searchWorkers = (term: string) =>
     apiRequest<Worker[]>(`/workers?search=${encodeURIComponent(term)}`);
 
@@ -56,6 +69,8 @@ export const useWorkers = () => {
     isUpdating: updateMutation.isPending,
     deleteWorker: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
+    updateSalaryStatus: salaryStatusMutation.mutateAsync,
+    isUpdatingSalaryStatus: salaryStatusMutation.isPending,
     searchWorkers
   };
 };
