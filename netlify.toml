@@ -9,4 +9,4 @@
   publish = "dist"
 
 [build.environment]
-  VITE_API_URL = "https://garage-backend-production-e008.up.railway.app/api"
+  VITE_API_URL = "https://garage-backend-production-ee9a.up.railway.app/api"
