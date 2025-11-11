@@ -19,9 +19,9 @@ export class ApiError extends Error {
   }
 }
 
-// Use proxy in local dev to avoid CORS, fall back to env or '/api' otherwise
-const isLocalhost = typeof window !== 'undefined' && /^localhost(:\d+)?$/.test(window.location.hostname);
-const baseUrl = isLocalhost ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
+// In browsers, always use same-origin '/api' so dev proxy (Vite) and prod rewrite (Vercel) handle CORS
+const isBrowser = typeof window !== 'undefined';
+const baseUrl = isBrowser ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
