@@ -13,12 +13,34 @@ import {
 const spendingsApiMode = (import.meta.env.VITE_SPENDINGS_API_MODE ?? 'auto').toLowerCase();
 const forceLocalSpendings = spendingsApiMode === 'local';
 const forceRemoteSpendings = spendingsApiMode === 'remote';
+const STORAGE_KEY = 'grage-spendings-use-local';
+const canUseBrowserStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
-let shouldUseLocalSpendings = forceLocalSpendings;
+const readPersistedLocalPreference = () => {
+  if (forceLocalSpendings || !canUseBrowserStorage()) {
+    return forceLocalSpendings;
+  }
+
+  return window.localStorage.getItem(STORAGE_KEY) === 'true';
+};
+
+const persistLocalPreference = () => {
+  if (!canUseBrowserStorage()) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEY, 'true');
+  } catch {
+    // Ignore storage errors – we can fall back to memory flag.
+  }
+};
+
+let shouldUseLocalSpendings = forceLocalSpendings || readPersistedLocalPreference();
 
 const markSpendingsApiUnavailable = () => {
   if (!forceRemoteSpendings) {
     shouldUseLocalSpendings = true;
+    persistLocalPreference();
   }
 };
 

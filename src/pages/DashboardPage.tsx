@@ -65,6 +65,8 @@ export const DashboardPage = () => {
     base: 4, 
     md: 6 
   });
+  const topWorkerCardBg = useColorModeValue('gray.50', 'gray.700');
+  const recentOrderBg = useColorModeValue('gray.50', 'gray.700');
 
   if (isLoading) {
     return (
@@ -241,7 +243,7 @@ export const DashboardPage = () => {
                           align="center"
                           p={3}
                           borderRadius="md"
-                          bg={useColorModeValue('gray.50', 'gray.700')}
+                          bg={recentOrderBg}
                         >
                           <Box flex={1}>
                             <Text fontWeight="medium" fontSize="sm">
@@ -285,14 +287,14 @@ export const DashboardPage = () => {
                     </Text>
                   ) : (
                     data.topWorkers.map((worker) => (
-                      <Box 
-                        key={worker.id} 
-                        p={3} 
-                        borderRadius="md"
-                        border="1px"
-                        borderColor={borderColor}
-                        bg={useColorModeValue('gray.50', 'gray.700')}
-                      >
+                        <Box 
+                          key={worker.id} 
+                          p={3} 
+                          borderRadius="md"
+                          border="1px"
+                          borderColor={borderColor}
+                          bg={topWorkerCardBg}
+                        >
                         <Flex justify="space-between" align="flex-start" mb={2}>
                           <Text fontWeight="medium" fontSize="sm">
                             {worker.name}
