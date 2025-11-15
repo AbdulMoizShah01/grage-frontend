@@ -196,24 +196,7 @@ export const StatCard = ({
             </Text>
           </HStack>
           
-          {/* Trend indicator - smaller on mobile */}
-          {trend && (
-            <Badge 
-              colorScheme={trend.isPositive ? 'green' : 'red'}
-              variant="subtle"
-              fontSize={{ base: '2xs', sm: 'xs' }}
-              display="flex"
-              alignItems="center"
-              gap={1}
-              flexShrink={0}
-            >
-              <Icon 
-                as={trend.isPositive ? FiTrendingUp : FiTrendingDown} 
-                boxSize={2} 
-              />
-              {trend.value}%
-            </Badge>
-          )}
+         
         </Flex>
 
         {/* Value - smaller font but full display on mobile */}
