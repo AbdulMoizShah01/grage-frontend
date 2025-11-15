@@ -11,7 +11,8 @@ import {
   useColorModeValue,
   Badge,
   CircularProgress,
-  CircularProgressLabel
+  CircularProgressLabel,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { FiHelpCircle, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 
@@ -48,6 +49,34 @@ export const StatCard = ({
   progressValue,
   showProgress = false
 }: StatCardProps) => {
+  // Responsive values
+  const responsivePadding = useBreakpointValue({
+    base: 3,
+    sm: size === 'sm' ? 3 : size === 'lg' ? 6 : 4,
+    md: size === 'sm' ? 4 : size === 'lg' ? 8 : 6
+  });
+
+  const responsiveValueSize = useBreakpointValue({
+    base: size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md',
+    sm: size === 'sm' ? 'md' : size === 'lg' ? 'xl' : 'lg'
+  });
+
+  const responsiveIconSize = useBreakpointValue({
+    base: 3,
+    sm: size === 'sm' ? 3 : size === 'lg' ? 5 : 4
+  });
+
+  const progressSize = useBreakpointValue({
+    base: '20px',
+    sm: '24px',
+    md: '32px'
+  });
+
+  const progressLabelSize = useBreakpointValue({
+    base: '2xs',
+    sm: '2xs'
+  });
+
   // Color values based on color mode and scheme
   const bgColor = useColorModeValue(
     variant === 'subtle' ? 'gray.50' : 'white',
@@ -62,21 +91,12 @@ export const StatCard = ({
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
   const shadow = variant === 'default' ? 'sm' : 'none';
   
-  // Size variants
-  const sizeConfig = {
-    sm: { padding: 4, headingSize: 'md', gap: 2, iconSize: 4, labelFontSize: 'xs', helperFontSize: 'xs', progressSize: '32px', progressLabelSize: '2xs' },
-    md: { padding: 6, headingSize: 'lg', gap: 2, iconSize: 5, labelFontSize: 'sm', helperFontSize: 'sm', progressSize: '36px', progressLabelSize: 'xs' },
-    lg: { padding: 8, headingSize: 'xl', gap: 3, iconSize: 6, labelFontSize: 'sm', helperFontSize: 'md', progressSize: '40px', progressLabelSize: 'xs' }
-  };
-
-  const { padding, headingSize, gap, iconSize, labelFontSize, helperFontSize, progressSize, progressLabelSize } = sizeConfig[size];
-
   // Color scheme configuration
   const colorConfig = {
-    brand: { color: 'blue.500', light: 'brand.50', dark: 'brand.100' },
-    green: { color: 'blue.500', light: 'green.50', dark: 'green.100' },
-    red: { color: 'blue.500', light: 'red.50', dark: 'red.100' },
-    orange: { color: 'blue.500', light: 'orange.50', dark: 'orange.100' },
+    brand: { color: 'blue.500', light: 'blue.50', dark: 'blue.100' },
+    green: { color: 'green.500', light: 'green.50', dark: 'green.100' },
+    red: { color: 'red.500', light: 'red.50', dark: 'red.100' },
+    orange: { color: 'orange.500', light: 'orange.50', dark: 'orange.100' },
     blue: { color: 'blue.500', light: 'blue.50', dark: 'blue.100' },
     purple: { color: 'purple.500', light: 'purple.50', dark: 'purple.100' },
     gray: { color: 'gray.500', light: 'gray.50', dark: 'gray.100' }
@@ -90,12 +110,13 @@ export const StatCard = ({
         bg={bgColor}
         borderRadius="xl"
         boxShadow={shadow}
-        p={padding}
+        p={responsivePadding}
         borderWidth={variant === 'outline' ? '1px' : '0'}
         borderColor={borderColor}
         opacity={0.6}
+        w="full"
       >
-        <Flex direction="column" gap={gap}>
+        <Flex direction="column" gap={2}>
           <Flex align="center" gap={2}>
             <Box w="60%" h="16px" bg="gray.200" borderRadius="md" />
           </Flex>
@@ -110,13 +131,13 @@ export const StatCard = ({
       bg={bgColor}
       borderRadius="xl"
       boxShadow={shadow}
-      p={padding}
+      p={responsivePadding}
       borderWidth={variant === 'outline' ? '1px' : '0'}
       borderColor={borderColor}
       transition="all 0.2s"
       _hover={onClick ? { 
         shadow: 'md', 
-        transform: 'translateY(-2px)',
+        transform: { base: 'none', md: 'translateY(-2px)' },
         bg: hoverBg,
         cursor: 'pointer'
       } : {}}
@@ -124,10 +145,11 @@ export const StatCard = ({
       position="relative"
       overflow="hidden"
       w="full"
+      minW="0"
     >
-      {/* Progress indicator */}
+      {/* Progress indicator - smaller on mobile */}
       {showProgress && progressValue !== undefined && (
-        <Box position="absolute" top={3} right={3}>
+        <Box position="absolute" top={2} right={2}>
           <CircularProgress 
             value={progressValue} 
             size={progressSize}
@@ -141,72 +163,98 @@ export const StatCard = ({
         </Box>
       )}
 
-      <Flex direction="column" gap={gap}>
-        {/* Header with label and icon */}
-        <Flex justify="space-between" align="flex-start" gap={2}>
-          <HStack spacing={2} align="center" flex={1}>
+      <Flex direction="column" gap={2} w="full">
+        {/* Header with label and icon - compact on mobile */}
+        <Flex 
+          justify="space-between" 
+          align="flex-start" 
+          gap={1}
+          direction="row"
+        >
+          <HStack spacing={1} align="center" flex={1} minW="0">
             {icon && (
               <Icon 
                 as={icon} 
                 color={colors.color} 
-                boxSize={iconSize}
-                mt={0.5}
+                boxSize={responsiveIconSize}
+                flexShrink={0}
               />
             )}
             <Text 
-              fontSize={labelFontSize}
+              fontSize={{ 
+                base: '2xs', 
+                sm: size === 'sm' ? 'xs' : 'sm'
+              }}
               color="gray.500"
               textTransform="uppercase"
               letterSpacing="wider"
               fontWeight="medium"
               noOfLines={1}
+              minW="0"
             >
               {label}
             </Text>
           </HStack>
           
-          {/* Trend indicator */}
+          {/* Trend indicator - smaller on mobile */}
           {trend && (
             <Badge 
               colorScheme={trend.isPositive ? 'green' : 'red'}
               variant="subtle"
-              fontSize="xs"
+              fontSize={{ base: '2xs', sm: 'xs' }}
               display="flex"
               alignItems="center"
               gap={1}
+              flexShrink={0}
             >
               <Icon 
                 as={trend.isPositive ? FiTrendingUp : FiTrendingDown} 
-                boxSize={3} 
+                boxSize={2} 
               />
               {trend.value}%
             </Badge>
           )}
         </Flex>
 
-        {/* Value and helper text */}
-        <VStack align="flex-start" spacing={1}>
-          <Heading 
-            size={headingSize}
+        {/* Value - smaller font but full display on mobile */}
+        <VStack align="flex-start" spacing={0} w="full" minW="0">
+          <Box 
+            fontSize={{
+              base: responsiveValueSize === 'lg' ? 'md' : 
+                    responsiveValueSize === 'xl' ? 'lg' : 'sm',
+              sm: responsiveValueSize === 'lg' ? 'lg' : 
+                  responsiveValueSize === 'xl' ? 'xl' : 'md'
+            }}
             color={useColorModeValue('gray.900', 'white')}
             fontWeight="bold"
-            noOfLines={1}
+            lineHeight="shorter"
+            w="full"
+            minW="0"
+            css={{
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word'
+            }}
           >
             {value}
-          </Heading>
+          </Box>
           
+          {/* Helper text - only show if there's space */}
           {helperText && (
-            <HStack spacing={1} align="center">
+            <HStack spacing={1} align="center" w="full" minW="0" mt={1}>
               <Text 
-                fontSize={helperFontSize}
+                fontSize={{ 
+                  base: '2xs', 
+                  sm: size === 'sm' ? 'xs' : 'sm'
+                }}
                 color="gray.500"
                 noOfLines={1}
+                minW="0"
               >
                 {helperText}
               </Text>
               <Tooltip label={helperText} placement="top">
-                <Box>
-                  <Icon as={FiHelpCircle} color="gray.400" boxSize={3} />
+                <Box flexShrink={0}>
+                  <Icon as={FiHelpCircle} color="gray.400" boxSize={2} />
                 </Box>
               </Tooltip>
             </HStack>
@@ -219,7 +267,7 @@ export const StatCard = ({
         position="absolute"
         top={0}
         left={0}
-        w="4px"
+        w="3px"
         h="full"
         bg={colors.color}
         opacity={0.8}
