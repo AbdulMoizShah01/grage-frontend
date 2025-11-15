@@ -34,9 +34,11 @@ const navItems: NavItem[] = [
 type SidebarProps = {
   footer?: ReactNode;
   inventoryAlertsCount?: number;
+  isMobileOpen?: boolean;
+  onMobileToggle?: () => void;
 };
 
-export const Sidebar = ({ footer, inventoryAlertsCount }: SidebarProps) => {
+export const Sidebar = ({ footer, inventoryAlertsCount, isMobileOpen, onMobileToggle }: SidebarProps) => {
   const sidebarBg = useColorModeValue('surface.base', '#111111');
   const borderColor = useColorModeValue('border.subtle', 'whiteAlpha.200');
   const hoverBg = useColorModeValue('gray.100', 'whiteAlpha.100');
@@ -74,6 +76,11 @@ export const Sidebar = ({ footer, inventoryAlertsCount }: SidebarProps) => {
               _activeLink={{ bg: activeBg, color: activeColor, fontWeight: 'semibold' }}
               px={3}
               py={2}
+              onClick={() => {
+                if (isMobileOpen && onMobileToggle) {
+                  onMobileToggle();
+                }
+              }}
             >
               <Flex align="center" gap={3}>
                 <Icon as={item.icon} boxSize={5} />
