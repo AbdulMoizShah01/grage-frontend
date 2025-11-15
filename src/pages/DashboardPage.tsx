@@ -53,18 +53,23 @@ export const DashboardPage = () => {
     base: '1fr', 
     lg: '2fr 1fr',
     xl: '3fr 1fr'
-  });
+  }) ?? '1fr';
   
   const statGridColumns = useBreakpointValue({ 
     base: 1, 
     sm: 2, 
     md: 4 
-  });
+  }) ?? 1;
 
   const sectionSpacing = useBreakpointValue({ 
     base: 4, 
     md: 6 
-  });
+  }) ?? 4;
+  const statCardSize = useBreakpointValue<'sm' | 'md' | 'lg'>({
+    base: 'sm',
+    md: 'md',
+    xl: 'lg'
+  }) ?? 'md';
   const topWorkerCardBg = useColorModeValue('gray.50', 'gray.700');
   const recentOrderBg = useColorModeValue('gray.50', 'gray.700');
 
@@ -142,17 +147,20 @@ export const DashboardPage = () => {
                 value={data.totals.customers}
                 icon={FiUsers}
                 trend={{ value: 12, isPositive: true }}
+                size={statCardSize}
               />
               <StatCard 
                 label="Vehicles" 
                 value={data.totals.vehicles}
                 icon={FiTruck}
+                size={statCardSize}
               />
               <StatCard 
                 label="Open Work Orders" 
                 value={data.totals.openWorkOrders}
                 icon={FiTool}
                 colorScheme="orange"
+                size={statCardSize}
               />
               <StatCard 
                 label="Inventory Alerts" 
@@ -160,6 +168,7 @@ export const DashboardPage = () => {
                 icon={FiAlertTriangle}
                 colorScheme="red"
                 helperText="At or below threshold"
+                size={statCardSize}
               />
             </SimpleGrid>
 
@@ -170,24 +179,28 @@ export const DashboardPage = () => {
                 value={formatCurrency(data.financials.netEarned)}
                 icon={FiDollarSign}
                 colorScheme="green"
+                size={statCardSize}
               />
               <StatCard 
                 label="Net Expense (6 mo)" 
                 value={formatCurrency(data.financials.netExpense)}
                 icon={FiDollarSign}
                 colorScheme="red"
+                size={statCardSize}
               />
               <StatCard 
                 label="Net Profit (6 mo)" 
                 value={formatCurrency(data.financials.netProfit)}
                 icon={FiTrendingUp}
                 colorScheme={data.financials.netProfit >= 0 ? 'green' : 'red'}
+                size={statCardSize}
               />
               <StatCard 
                 label="Spendings (6 mo)" 
                 value={formatCurrency(data.financials.spendings)}
                 icon={FiDollarSign}
                 colorScheme="purple"
+                size={statCardSize}
               />
             </SimpleGrid>
 

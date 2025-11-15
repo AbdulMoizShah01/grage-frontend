@@ -64,12 +64,12 @@ export const StatCard = ({
   
   // Size variants
   const sizeConfig = {
-    sm: { padding: 4, headingSize: 'md', gap: 2 },
-    md: { padding: 6, headingSize: 'lg', gap: 2 },
-    lg: { padding: 8, headingSize: 'xl', gap: 3 }
+    sm: { padding: 4, headingSize: 'md', gap: 2, iconSize: 4, labelFontSize: 'xs', helperFontSize: 'xs', progressSize: '32px', progressLabelSize: '2xs' },
+    md: { padding: 6, headingSize: 'lg', gap: 2, iconSize: 5, labelFontSize: 'sm', helperFontSize: 'sm', progressSize: '36px', progressLabelSize: 'xs' },
+    lg: { padding: 8, headingSize: 'xl', gap: 3, iconSize: 6, labelFontSize: 'sm', helperFontSize: 'md', progressSize: '40px', progressLabelSize: 'xs' }
   };
 
-  const { padding, headingSize, gap } = sizeConfig[size];
+  const { padding, headingSize, gap, iconSize, labelFontSize, helperFontSize, progressSize, progressLabelSize } = sizeConfig[size];
 
   // Color scheme configuration
   const colorConfig = {
@@ -123,17 +123,18 @@ export const StatCard = ({
       onClick={onClick}
       position="relative"
       overflow="hidden"
+      w="full"
     >
       {/* Progress indicator */}
       {showProgress && progressValue !== undefined && (
         <Box position="absolute" top={3} right={3}>
           <CircularProgress 
             value={progressValue} 
-            size="32px" 
+            size={progressSize}
             thickness="8px"
             color={colors.color}
           >
-            <CircularProgressLabel fontSize="2xs">
+            <CircularProgressLabel fontSize={progressLabelSize}>
               {progressValue}%
             </CircularProgressLabel>
           </CircularProgress>
@@ -148,12 +149,12 @@ export const StatCard = ({
               <Icon 
                 as={icon} 
                 color={colors.color} 
-                boxSize={size === 'lg' ? 5 : 4}
+                boxSize={iconSize}
                 mt={0.5}
               />
             )}
             <Text 
-              fontSize={size === 'sm' ? 'xs' : 'sm'}
+              fontSize={labelFontSize}
               color="gray.500"
               textTransform="uppercase"
               letterSpacing="wider"
@@ -197,7 +198,7 @@ export const StatCard = ({
           {helperText && (
             <HStack spacing={1} align="center">
               <Text 
-                fontSize={size === 'sm' ? 'xs' : 'sm'}
+                fontSize={helperFontSize}
                 color="gray.500"
                 noOfLines={1}
               >
