@@ -27,7 +27,32 @@ const trimTrailingSlash = (value?: string | null) => {
 
 const envBaseUrl = trimTrailingSlash(import.meta.env.VITE_API_URL);
 const defaultBaseUrl = '/api';
-const baseUrl = envBaseUrl ?? defaultBaseUrl;
+const isBrowser = typeof window !== 'undefined';
+const isAbsoluteUrl = (value?: string) => !!value && /^https?:\/\//i.test(value);
+
+const resolveBaseUrl = () => {
+  if (!envBaseUrl) {
+    return defaultBaseUrl;
+  }
+
+  if (!isBrowser || !isAbsoluteUrl(envBaseUrl)) {
+    return envBaseUrl;
+  }
+
+  try {
+    const envOrigin = new URL(envBaseUrl).origin;
+    if (import.meta.env.PROD && envOrigin !== window.location.origin) {
+      // In production, prefer the same-origin /api path so Vercel's rewrite avoids CORS.
+      return defaultBaseUrl;
+    }
+  } catch {
+    return defaultBaseUrl;
+  }
+
+  return envBaseUrl;
+};
+
+const baseUrl = resolveBaseUrl();
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
