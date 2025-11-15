@@ -143,11 +143,8 @@ export const InsightsPage = () => {
 
   // Calculate key metrics
   const profitMargin = data ? (data.netProfit / data.netEarned) * 100 : 0;
-  const revenueGrowth = data?.revenueGrowth || 0;
-  const expenseGrowth = data?.expenseGrowth || 0;
-  const avgOrderValue = data?.avgOrderValue || 0;
-  const completionRate = data?.completionRate || 0;
-  const customerSatisfaction = data?.customerSatisfaction || 0;
+ 
+
 
   // Calculate efficiency metrics
   const revenuePerService = data?.servicesSold ? data.netEarned / data.servicesSold : 0;
@@ -212,7 +209,7 @@ export const InsightsPage = () => {
             helperText="Completed orders - last 6 months"
             icon={FiDollarSign}
             colorScheme="green"
-            trend={data.revenueGrowth ? { value: data.revenueGrowth, isPositive: data.revenueGrowth >= 0 } : undefined}
+    
           />
           <StatCard 
             label="Net Expense" 
@@ -220,7 +217,7 @@ export const InsightsPage = () => {
             helperText="Parts + workforce budget"
             icon={FiTrendingDown}
             colorScheme="red"
-            trend={data.expenseGrowth ? { value: data.expenseGrowth, isPositive: data.expenseGrowth <= 0 } : undefined}
+
           />
           <StatCard 
             label="Net Profit" 
@@ -435,92 +432,7 @@ export const InsightsPage = () => {
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
-                {/* Average Order Value */}
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <HStack>
-                      <Text fontSize="sm" fontWeight="medium">Avg Order Value</Text>
-                      <Tooltip label="Average revenue per completed work order">
-                        <Box>
-                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
-                        </Box>
-                      </Tooltip>
-                    </HStack>
-                    <Text fontSize="sm" color="blue.500" fontWeight="bold">
-                      {formatCurrency(avgOrderValue)}
-                    </Text>
-                  </Flex>
-                  <Progress 
-                    value={Math.min((avgOrderValue / 1000) * 100, 100)} 
-                    colorScheme="blue" 
-                    size="sm" 
-                    borderRadius="full" 
-                  />
-                </Box>
-                
-                {/* Completion Rate */}
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <HStack>
-                      <Text fontSize="sm" fontWeight="medium">Completion Rate</Text>
-                      <Tooltip label="Percentage of work orders completed on time">
-                        <Box>
-                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
-                        </Box>
-                      </Tooltip>
-                    </HStack>
-                    <Text fontSize="sm" color="green.500" fontWeight="bold">
-                      {completionRate.toFixed(1)}%
-                    </Text>
-                  </Flex>
-                  <Progress value={completionRate} colorScheme="green" size="sm" borderRadius="full" />
-                </Box>
-                
-                {/* Revenue per Service */}
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <HStack>
-                      <Text fontSize="sm" fontWeight="medium">Revenue per Service</Text>
-                      <Tooltip label="Average revenue generated per service line item">
-                        <Box>
-                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
-                        </Box>
-                      </Tooltip>
-                    </HStack>
-                    <Text fontSize="sm" color="purple.500" fontWeight="bold">
-                      {formatCurrency(revenuePerService)}
-                    </Text>
-                  </Flex>
-                  <Progress 
-                    value={Math.min((revenuePerService / 500) * 100, 100)} 
-                    colorScheme="purple" 
-                    size="sm" 
-                    borderRadius="full" 
-                  />
-                </Box>
-
-                {/* Customer Satisfaction */}
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <HStack>
-                      <Text fontSize="sm" fontWeight="medium">Customer Satisfaction</Text>
-                      <Tooltip label="Based on customer feedback and ratings">
-                        <Box>
-                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
-                        </Box>
-                      </Tooltip>
-                    </HStack>
-                    <Text fontSize="sm" color="orange.500" fontWeight="bold">
-                      {customerSatisfaction.toFixed(1)}/5
-                    </Text>
-                  </Flex>
-                  <Progress 
-                    value={(customerSatisfaction / 5) * 100} 
-                    colorScheme="orange" 
-                    size="sm" 
-                    borderRadius="full" 
-                  />
-                </Box>
+  
 
                 {/* Key Insight */}
                 <Box pt={2}>
