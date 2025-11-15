@@ -19,8 +19,15 @@ export class ApiError extends Error {
   }
 }
 
-const envBaseUrl = import.meta.env.VITE_API_URL?.trim();
-const baseUrl = import.meta.env.PROD ? '/api' : envBaseUrl ?? '/api';
+const trimTrailingSlash = (value?: string | null) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+};
+
+const envBaseUrl = trimTrailingSlash(import.meta.env.VITE_API_URL);
+const defaultBaseUrl = '/api';
+const baseUrl = envBaseUrl ?? defaultBaseUrl;
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
@@ -28,7 +35,9 @@ export async function apiRequest<TResponse, TBody = unknown>(
 ): Promise<TResponse> {
   const { method = 'GET', body, signal } = options;
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const url = path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+
+  const response = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json'

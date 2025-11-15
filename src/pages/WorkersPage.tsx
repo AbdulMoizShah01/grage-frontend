@@ -312,8 +312,15 @@ export const WorkersPage = () => {
     const shiftValue = parseExpenseField(editFormState.shiftExpense);
     const mealValue = parseExpenseField(editFormState.mealExpense);
     const otherValue = parseExpenseField(editFormState.otherExpense);
+    const salaryValue = parseExpenseField(editFormState.salaryAmount);
 
-    if (commuteValue === null || shiftValue === null || mealValue === null || otherValue === null) {
+    if (
+      commuteValue === null ||
+      shiftValue === null ||
+      mealValue === null ||
+      otherValue === null ||
+      salaryValue === null
+    ) {
       toast({
         status: 'warning',
         title: 'Invalid expense amount',
@@ -331,7 +338,9 @@ export const WorkersPage = () => {
           commuteExpense: commuteValue ?? undefined,
           shiftExpense: shiftValue ?? undefined,
           mealExpense: mealValue ?? undefined,
-          otherExpense: otherValue ?? undefined
+          otherExpense: otherValue ?? undefined,
+          salaryAmount: salaryValue ?? undefined,
+          salaryFrequency: editFormState.salaryFrequency as 'DAILY' | 'MONTHLY'
         }
       });
 

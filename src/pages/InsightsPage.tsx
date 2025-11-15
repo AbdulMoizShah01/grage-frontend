@@ -49,7 +49,9 @@ import {
   FiTruck,
   FiPieChart,
   FiBarChart2,
-  FiInfo
+  FiInfo,
+  FiClock,
+  FiUsers
 } from 'react-icons/fi';
 
 import { AppShell } from '../components/shell/AppShell';
@@ -139,8 +141,17 @@ export const InsightsPage = () => {
         ].filter(item => item.value > 0)
       : [];
 
-  // Calculate profit margin
+  // Calculate key metrics
   const profitMargin = data ? (data.netProfit / data.netEarned) * 100 : 0;
+  const revenueGrowth = data?.revenueGrowth || 0;
+  const expenseGrowth = data?.expenseGrowth || 0;
+  const avgOrderValue = data?.avgOrderValue || 0;
+  const completionRate = data?.completionRate || 0;
+  const customerSatisfaction = data?.customerSatisfaction || 0;
+
+  // Calculate efficiency metrics
+  const revenuePerService = data?.servicesSold ? data.netEarned / data.servicesSold : 0;
+  const expensePerVehicle = data?.vehicleCount ? data.netExpense / data.vehicleCount : 0;
 
   // Responsive values
   const mainGridColumns = useBreakpointValue({ base: 1, lg: 2, xl: 3 });
@@ -201,7 +212,7 @@ export const InsightsPage = () => {
             helperText="Completed orders - last 6 months"
             icon={FiDollarSign}
             colorScheme="green"
-            trend={{ value: 12.5, isPositive: true }}
+            trend={data.revenueGrowth ? { value: data.revenueGrowth, isPositive: data.revenueGrowth >= 0 } : undefined}
           />
           <StatCard 
             label="Net Expense" 
@@ -209,6 +220,7 @@ export const InsightsPage = () => {
             helperText="Parts + workforce budget"
             icon={FiTrendingDown}
             colorScheme="red"
+            trend={data.expenseGrowth ? { value: data.expenseGrowth, isPositive: data.expenseGrowth <= 0 } : undefined}
           />
           <StatCard 
             label="Net Profit" 
@@ -216,8 +228,7 @@ export const InsightsPage = () => {
             helperText="Earned minus expenses"
             icon={FiTrendingUp}
             colorScheme={data.netProfit >= 0 ? 'green' : 'red'}
-            showProgress
-            progressValue={Math.min(Math.abs(profitMargin), 100)}
+          
           />
           <StatCard 
             label="Spendings" 
@@ -414,49 +425,107 @@ export const InsightsPage = () => {
             </CardBody>
           </Card>
 
-          {/* Additional Insights Card */}
+          {/* Business Efficiency Metrics */}
           <Card bg={cardBg} border="1px" borderColor={borderColor} shadow="sm">
             <CardHeader pb={4}>
               <HStack>
-                <Icon as={FiInfo} color="brand.500" />
-                <Heading size="md">Performance Summary</Heading>
+                <Icon as={FiTrendingUp} color="brand.500" />
+                <Heading size="md">Business Efficiency</Heading>
               </HStack>
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
+                {/* Average Order Value */}
                 <Box>
                   <Flex justify="space-between" mb={1}>
-                    <Text fontSize="sm" fontWeight="medium">Revenue Growth</Text>
-                    <Text fontSize="sm" color="green.500" fontWeight="bold">
-                      +12.5%
-                    </Text>
-                  </Flex>
-                  <Progress value={65} colorScheme="green" size="sm" borderRadius="full" />
-                </Box>
-                
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <Text fontSize="sm" fontWeight="medium">Expense Control</Text>
-                    <Text fontSize="sm" color="orange.500" fontWeight="bold">
-                      +8.2%
-                    </Text>
-                  </Flex>
-                  <Progress value={42} colorScheme="orange" size="sm" borderRadius="full" />
-                </Box>
-                
-                <Box>
-                  <Flex justify="space-between" mb={1}>
-                    <Text fontSize="sm" fontWeight="medium">Service Efficiency</Text>
+                    <HStack>
+                      <Text fontSize="sm" fontWeight="medium">Avg Order Value</Text>
+                      <Tooltip label="Average revenue per completed work order">
+                        <Box>
+                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
+                        </Box>
+                      </Tooltip>
+                    </HStack>
                     <Text fontSize="sm" color="blue.500" fontWeight="bold">
-                      78%
+                      {formatCurrency(avgOrderValue)}
                     </Text>
                   </Flex>
-                  <Progress value={78} colorScheme="blue" size="sm" borderRadius="full" />
+                  <Progress 
+                    value={Math.min((avgOrderValue / 1000) * 100, 100)} 
+                    colorScheme="blue" 
+                    size="sm" 
+                    borderRadius="full" 
+                  />
+                </Box>
+                
+                {/* Completion Rate */}
+                <Box>
+                  <Flex justify="space-between" mb={1}>
+                    <HStack>
+                      <Text fontSize="sm" fontWeight="medium">Completion Rate</Text>
+                      <Tooltip label="Percentage of work orders completed on time">
+                        <Box>
+                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
+                        </Box>
+                      </Tooltip>
+                    </HStack>
+                    <Text fontSize="sm" color="green.500" fontWeight="bold">
+                      {completionRate.toFixed(1)}%
+                    </Text>
+                  </Flex>
+                  <Progress value={completionRate} colorScheme="green" size="sm" borderRadius="full" />
+                </Box>
+                
+                {/* Revenue per Service */}
+                <Box>
+                  <Flex justify="space-between" mb={1}>
+                    <HStack>
+                      <Text fontSize="sm" fontWeight="medium">Revenue per Service</Text>
+                      <Tooltip label="Average revenue generated per service line item">
+                        <Box>
+                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
+                        </Box>
+                      </Tooltip>
+                    </HStack>
+                    <Text fontSize="sm" color="purple.500" fontWeight="bold">
+                      {formatCurrency(revenuePerService)}
+                    </Text>
+                  </Flex>
+                  <Progress 
+                    value={Math.min((revenuePerService / 500) * 100, 100)} 
+                    colorScheme="purple" 
+                    size="sm" 
+                    borderRadius="full" 
+                  />
                 </Box>
 
+                {/* Customer Satisfaction */}
+                <Box>
+                  <Flex justify="space-between" mb={1}>
+                    <HStack>
+                      <Text fontSize="sm" fontWeight="medium">Customer Satisfaction</Text>
+                      <Tooltip label="Based on customer feedback and ratings">
+                        <Box>
+                          <Icon as={FiInfo} color={mutedText} boxSize={3} />
+                        </Box>
+                      </Tooltip>
+                    </HStack>
+                    <Text fontSize="sm" color="orange.500" fontWeight="bold">
+                      {customerSatisfaction.toFixed(1)}/5
+                    </Text>
+                  </Flex>
+                  <Progress 
+                    value={(customerSatisfaction / 5) * 100} 
+                    colorScheme="orange" 
+                    size="sm" 
+                    borderRadius="full" 
+                  />
+                </Box>
+
+                {/* Key Insight */}
                 <Box pt={2}>
                   <Text fontSize="sm" color={mutedText}>
-                    <strong>Insight:</strong> Revenue is growing faster than expenses, indicating improved operational efficiency.
+                    <strong>Insight:</strong> {profitMargin >= 15 ? 'Strong profitability with efficient operations.' : profitMargin >= 5 ? 'Moderate profitability with room for improvement.' : 'Focus on reducing expenses and increasing revenue.'}
                   </Text>
                 </Box>
               </VStack>
