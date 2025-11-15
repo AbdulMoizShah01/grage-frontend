@@ -20,7 +20,7 @@ export class ApiError extends Error {
 }
 
 const envBaseUrl = import.meta.env.VITE_API_URL?.trim();
-const baseUrl = import.meta.env.DEV ? envBaseUrl ?? '/api' : '/api';
+const baseUrl = import.meta.env.PROD ? '/api' : envBaseUrl ?? '/api';
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,

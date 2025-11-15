@@ -1,6 +1,7 @@
 import { WorkOrder } from '../types/api';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? '/api';
+const envBaseUrl = import.meta.env.VITE_API_URL?.trim();
+const apiBaseUrl = import.meta.env.PROD ? '/api' : envBaseUrl ?? '/api';
 const INVOICE_PREFIX = 'IN/TAG/NEW';
 
 export const buildInvoiceCode = (order: WorkOrder) => {
