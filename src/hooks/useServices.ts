@@ -12,8 +12,12 @@ type ServiceItemInput = {
 
 type ServiceItemUpdateInput = Partial<ServiceItemInput>;
 
-export const useServices = () => {
-  const query = useApiQuery<ServiceItem[]>(['services'], '/services');
+export const useServices = (search?: string) => {
+  const normalizedSearch = search?.trim() ?? '';
+  const path = normalizedSearch
+    ? `/services?search=${encodeURIComponent(normalizedSearch)}`
+    : '/services';
+  const query = useApiQuery<ServiceItem[]>(['services', normalizedSearch], path);
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -42,9 +46,6 @@ export const useServices = () => {
     }
   });
 
-  const searchServiceItems = (term: string) =>
-    apiRequest<ServiceItem[]>(`/services?search=${encodeURIComponent(term)}`);
-
   return {
     ...query,
     createServiceItem: createMutation.mutateAsync,
@@ -52,7 +53,6 @@ export const useServices = () => {
     updateServiceItem: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
     deleteServiceItem: deleteMutation.mutateAsync,
-    isDeleting: deleteMutation.isPending,
-    searchServiceItems
+    isDeleting: deleteMutation.isPending
   };
 };

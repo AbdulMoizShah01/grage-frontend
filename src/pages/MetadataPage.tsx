@@ -1,5 +1,4 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
-import { FaCar } from "react-icons/fa";
 import {
   Alert,
   AlertIcon,
@@ -11,9 +10,6 @@ import {
   AlertDialogOverlay,
   Box,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Divider,
   FormControl,
   FormLabel,
@@ -33,39 +29,15 @@ import {
   useColorModeValue,
   useDisclosure,
   useToast,
-  VStack,
-  Flex,
-  Badge,
-  useBreakpointValue,
-  Grid,
-  GridItem,
-  Wrap,
-  WrapItem,
-  Avatar,
-  Skeleton,
-  SkeletonText,
-  Icon
+  VStack
 } from '@chakra-ui/react';
-import { 
-  FiEdit2, 
-  FiPlus, 
-  FiSearch, 
-  FiTrash2, 
-  FiUser,  
-  FiPhone, 
-  FiMail,
-  FiMapPin,
-  FiDollarSign,
-  FiCalendar,
-  FiBarChart2
-} from 'react-icons/fi';
+import { FiEdit2, FiPlus, FiSearch, FiTrash2 } from 'react-icons/fi';
 
 import { AppShell } from '../components/shell/AppShell';
 import { useMetadata, MetadataInput } from '../hooks/useMetadata';
 import { useDashboardSummary } from '../hooks/useDashboardSummary';
 import { MetadataRecord } from '../types/api';
 import { FormModal } from '../components/forms/FormModal';
-import { StatCard } from '../components/cards/StatCard';
 import { formatCurrency } from '../utils/formatting';
 
 const initialFormState: MetadataInput = {
@@ -100,24 +72,6 @@ const sanitizeNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-// Skeleton loader for metadata cards
-const MetadataCardSkeleton = () => (
-  <Card>
-    <CardBody>
-      <Stack spacing={4}>
-        <Skeleton height="20px" width="60%" />
-        <Skeleton height="16px" width="40%" />
-        <Skeleton height="16px" width="70%" />
-        <Skeleton height="16px" width="50%" />
-        <HStack spacing={2}>
-          <Skeleton height="24px" width="60px" />
-          <Skeleton height="24px" width="50px" />
-        </HStack>
-      </Stack>
-    </CardBody>
-  </Card>
-);
-
 export const MetadataPage = () => {
   const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -132,24 +86,9 @@ export const MetadataPage = () => {
     useMetadata(searchTerm);
   const { data: summary } = useDashboardSummary();
   const records = useMemo(() => data ?? [], [data]);
-
-  // Responsive values
-  const gridColumns = useBreakpointValue({ 
-    base: 1, 
-    sm: 2, 
-    lg: 3, 
-    xl: 4 
-  });
-  const buttonSize = useBreakpointValue({ base: 'sm', md: 'md' });
-  const modalSize = useBreakpointValue({ base: 'full', md: 'xl', lg: '4xl' });
-  const statsGridColumns = useBreakpointValue({ base: 2, md: 4 });
-
-  // Theme colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const mutedText = useColorModeValue('gray.600', 'gray.400');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
-  const accentColor = useColorModeValue('brand.500', 'brand.300');
+  const cardBg = useColorModeValue('surface.base', '#121212');
+  const borderColor = useColorModeValue('border.subtle', 'whiteAlpha.200');
+  const mutedText = useColorModeValue('gray.500', 'gray.400');
 
   const resetForm = () => {
     setFormState(initialFormState);
@@ -217,27 +156,18 @@ export const MetadataPage = () => {
           vehicleId: recordBeingEdited.vehicle.id,
           payload: formState
         });
-        toast({ 
-          status: 'success', 
-          title: 'Metadata updated successfully',
-          position: 'top-right'
-        });
+        toast({ status: 'success', title: 'Metadata updated.' });
       } else {
         await createMetadata(formState);
-        toast({ 
-          status: 'success', 
-          title: 'Metadata added successfully',
-          position: 'top-right'
-        });
+        toast({ status: 'success', title: 'Metadata added.' });
       }
       formDisclosure.onClose();
       resetForm();
     } catch (submitError) {
       toast({
         status: 'error',
-        title: 'Unable to save metadata',
-        description: submitError instanceof Error ? submitError.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to save metadata.',
+        description: submitError instanceof Error ? submitError.message : 'Please try again.'
       });
     }
   };
@@ -259,589 +189,236 @@ export const MetadataPage = () => {
 
     try {
       await deleteMetadata(recordPendingDelete.vehicle.id);
-      toast({ 
-        status: 'success', 
-        title: 'Metadata deleted successfully',
-        position: 'top-right'
-      });
+      toast({ status: 'success', title: 'Metadata deleted.' });
       closeDeleteDialog();
     } catch (deleteError) {
       toast({
         status: 'error',
-        title: 'Unable to delete metadata',
-        description: deleteError instanceof Error ? deleteError.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to delete metadata.',
+        description: deleteError instanceof Error ? deleteError.message : 'Please try again.'
       });
     }
   };
 
-  // Calculate summary statistics
-  const summaryStats = useMemo(() => {
-    if (!records.length) return null;
-    
-    const totalCustomers = records.length;
-    const totalVehicles = records.length;
-    const totalOpenOrders = records.reduce((sum, record) => sum + record.stats.openWorkOrders, 0);
-    const totalOutstanding = records.reduce((sum, record) => sum + record.stats.outstandingBalance, 0);
-
-    return {
-      totalCustomers,
-      totalVehicles,
-      totalOpenOrders,
-      totalOutstanding
-    };
-  }, [records]);
-
   return (
     <AppShell
-      title="Customer & Vehicle Database"
+      title="Metadata"
       inventoryAlertsCount={summary?.inventoryAlertsCount}
-      breadcrumbs={[
-        { label: 'Dashboard', to: '/' },
-        { label: 'Metadata' }
-      ]}
       actions={
-        <Button 
-          leftIcon={<FiPlus />} 
-          colorScheme="brand" 
-          onClick={openCreateModal}
-          size={buttonSize}
-        >
-          Add Record
+        <Button leftIcon={<FiPlus />} colorScheme="brand" onClick={openCreateModal}>
+          Add Metadata
         </Button>
       }
     >
-      <Stack spacing={6}>
-        {/* Summary Statistics */}
-        {summaryStats && (
-          <SimpleGrid columns={statsGridColumns} gap={4}>
-            <StatCard 
-              label="Total Customers" 
-              value={summaryStats.totalCustomers}
-              icon={FiUser}
-              colorScheme="blue"
-              size="sm"
-            />
-            <StatCard 
-              label="Total Vehicles" 
-              value={summaryStats.totalVehicles}
-              icon={FaCar}
-              colorScheme="green"
-              size="sm"
-            />
-            <StatCard 
-              label="Open Work Orders" 
-              value={summaryStats.totalOpenOrders}
-              icon={FiBarChart2}
-              colorScheme="orange"
-              size="sm"
-            />
-            <StatCard 
-              label="Outstanding Balance" 
-              value={formatCurrency(summaryStats.totalOutstanding)}
-              icon={FiDollarSign}
-              colorScheme="red"
-              size="sm"
-              isCurrency
-            />
-          </SimpleGrid>
-        )}
+      <Stack spacing={4}>
+        <InputGroup maxW="360px">
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="var(--chakra-colors-gray-400)" />
+          </InputLeftElement>
+          <Input
+            placeholder="Search by customer name, plate, VIN, make, model, or year"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </InputGroup>
 
-        {/* Search and Filters */}
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stack spacing={4}>
-              <InputGroup size="lg">
-                <InputLeftElement pointerEvents="none">
-                  <FiSearch color={mutedText} />
-                </InputLeftElement>
-                <Input
-                  placeholder="Search by customer name, vehicle plate, VIN, make, model, or year..."
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  borderRadius="lg"
-                />
-              </InputGroup>
-              
-              {/* Quick Filters */}
-              <Wrap spacing={2}>
-                <Tag 
-                  size="md" 
-                  variant={searchTerm ? 'subtle' : 'solid'} 
-                  colorScheme="brand"
-                  cursor="pointer"
-                  onClick={() => setSearchTerm('')}
-                >
-                  All Records
-                </Tag>
-                <Tag 
-                  size="md" 
-                  variant="subtle"
-                  colorScheme="orange"
-                  cursor="pointer"
-                  onClick={() => setSearchTerm('status:active')}
-                >
-                  Active Work Orders
-                </Tag>
-                <Tag 
-                  size="md" 
-                  variant="subtle"
-                  colorScheme="red"
-                  cursor="pointer"
-                  onClick={() => setSearchTerm('balance:outstanding')}
-                >
-                  Outstanding Balance
-                </Tag>
-              </Wrap>
-            </Stack>
-          </CardBody>
-        </Card>
-
-        {/* Loading State */}
-        {isLoading && (
-          <SimpleGrid columns={gridColumns} spacing={4}>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <MetadataCardSkeleton key={index} />
-            ))}
-          </SimpleGrid>
-        )}
-
-        {/* Error State */}
-        {error && !isLoading && (
-          <Alert status="error" borderRadius="lg">
+        {isLoading ? (
+          <Spinner />
+        ) : error ? (
+          <Alert status="error" borderRadius="md">
             <AlertIcon />
-            <Box>
-              <Text fontWeight="semibold">Unable to load metadata records</Text>
-              <Text fontSize="sm" mt={1}>
-                {error instanceof Error ? error.message : 'Please check your connection and try again.'}
-              </Text>
-            </Box>
+            Unable to load metadata records.
           </Alert>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && !error && records.length === 0 && (
-          <Card bg={cardBg} border="1px" borderColor={borderColor}>
-            <CardBody textAlign="center" py={12}>
-              <Icon as={FiUser} boxSize={12} color={mutedText} mb={4} />
-              <Text fontSize="lg" fontWeight="semibold" mb={2}>
-                No metadata records found
-              </Text>
-              <Text color={mutedText} mb={6}>
-                {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first customer and vehicle'}
-              </Text>
-              <Button 
-                leftIcon={<FiPlus />} 
-                colorScheme="brand" 
-                onClick={openCreateModal}
-                size="lg"
-              >
-                Add First Record
-              </Button>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Records Grid */}
-        {!isLoading && !error && records.length > 0 && (
-          <SimpleGrid columns={gridColumns} spacing={4}>
+        ) : records.length === 0 ? (
+          <Box bg={cardBg} borderRadius="xl" borderWidth="1px" borderColor={borderColor} p={8}>
+            <Text color={mutedText}>No metadata records found. Add one to get started.</Text>
+          </Box>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={4}>
             {records.map((record) => (
-              <Card 
-                key={record.id} 
-                bg={cardBg} 
-                border="1px" 
-                borderColor={borderColor}
-                transition="all 0.2s"
-                _hover={{ 
-                  transform: 'translateY(-2px)',
-                  boxShadow: 'lg',
-                  borderColor: accentColor
-                }}
-                cursor="pointer"
-                onClick={() => openEditModal(record)}
-              >
-                <CardHeader pb={3}>
-                  <Flex justify="space-between" align="flex-start">
-                    <Box flex={1}>
-                      <HStack spacing={2} mb={2}>
-                        <Avatar 
-                          size="sm" 
-                          name={`${record.customer.firstName} ${record.customer.lastName}`}
-                          bg="brand.500"
-                          color="white"
-                        />
-                        <Box>
-                          <Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-                            {record.customer.firstName} {record.customer.lastName}
-                          </Text>
-                          <Text fontSize="sm" color={mutedText} noOfLines={1}>
-                            {record.customer.company}
-                          </Text>
-                        </Box>
-                      </HStack>
-                    </Box>
-                    <HStack spacing={1}>
-                      <Tooltip label="Edit">
-                        <IconButton
-                          aria-label="Edit metadata"
-                          icon={<FiEdit2 />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditModal(record);
-                          }}
-                        />
-                      </Tooltip>
-                      <Tooltip label="Delete">
-                        <IconButton
-                          aria-label="Delete metadata"
-                          icon={<FiTrash2 />}
-                          size="sm"
-                          variant="ghost"
-                          colorScheme="red"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteDialog(record);
-                          }}
-                          isDisabled={isDeleting}
-                        />
-                      </Tooltip>
-                    </HStack>
-                  </Flex>
-                </CardHeader>
-
-                <CardBody pt={0}>
-                  <VStack align="stretch" spacing={4}>
-                    {/* Vehicle Information */}
-                    <Box>
-                      <HStack spacing={2} mb={2}>
-                        <Icon as={FaCar} color={accentColor} />
-                        <Text fontWeight="semibold" color={accentColor}>
-                          Vehicle Details
-                        </Text>
-                      </HStack>
-                      <Text fontWeight="medium" fontSize="lg">
-                        {record.vehicle.year} {record.vehicle.make} {record.vehicle.model}
+              <Box key={record.id} bg={cardBg} borderRadius="xl" borderWidth="1px" borderColor={borderColor} p={5}>
+                <HStack justify="space-between" mb={4}>
+                  <Text fontWeight="bold">
+                    {record.customer.firstName} {record.customer.lastName}
+                  </Text>
+                  <HStack spacing={2}>
+                    <Tooltip label="Edit">
+                      <IconButton
+                        aria-label="Edit metadata"
+                        icon={<FiEdit2 />}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(record)}
+                      />
+                    </Tooltip>
+                    <Tooltip label="Delete">
+                      <IconButton
+                        aria-label="Delete metadata"
+                        icon={<FiTrash2 />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => openDeleteDialog(record)}
+                        isDisabled={isDeleting}
+                      />
+                    </Tooltip>
+                  </HStack>
+                </HStack>
+                <VStack align="stretch" spacing={3}>
+                  <Box>
+                    <Text fontSize="sm" color={mutedText}>
+                      Vehicle
+                    </Text>
+                    <Text fontWeight="medium">
+                      {record.vehicle.year} {record.vehicle.make} {record.vehicle.model}
+                    </Text>
+                    <Text fontSize="sm" color={mutedText}>
+                      VIN: {record.vehicle.vin}
+                    </Text>
+                    {record.vehicle.licensePlate ? (
+                      <Text fontSize="sm" color={mutedText}>
+                        Plate: {record.vehicle.licensePlate}
                       </Text>
-                      <VStack align="stretch" spacing={1} mt={2}>
-                        <Text fontSize="sm" color={mutedText}>
-                          <strong>VIN:</strong> {record.vehicle.vin}
-                        </Text>
-                        {record.vehicle.licensePlate && (
-                          <Text fontSize="sm" color={mutedText}>
-                            <strong>Plate:</strong> {record.vehicle.licensePlate}
-                          </Text>
-                        )}
-                        {record.vehicle.color && (
-                          <Text fontSize="sm" color={mutedText}>
-                            <strong>Color:</strong> {record.vehicle.color}
-                          </Text>
-                        )}
-                      </VStack>
-                    </Box>
-
-                    {/* Contact Information */}
-                    <Box>
-                      <HStack spacing={2} mb={2}>
-                        <Icon as={FiUser} color={accentColor} />
-                        <Text fontWeight="semibold" color={accentColor}>
-                          Contact Info
-                        </Text>
-                      </HStack>
-                      <VStack align="stretch" spacing={1}>
-                        <HStack spacing={2}>
-                          <Icon as={FiPhone} size="12px" color={mutedText} />
-                          <Text fontSize="sm">{record.customer.phone}</Text>
-                        </HStack>
-                        {record.customer.email && (
-                          <HStack spacing={2}>
-                            <Icon as={FiMail} size="12px" color={mutedText} />
-                            <Text fontSize="sm" noOfLines={1}>{record.customer.email}</Text>
-                          </HStack>
-                        )}
-                      </VStack>
-                    </Box>
-
-                    {/* Statistics */}
-                    <Box>
-                      <HStack spacing={2} mb={2}>
-                        <Icon as={FiBarChart2} color={accentColor} />
-                        <Text fontWeight="semibold" color={accentColor}>
-                          Statistics
-                        </Text>
-                      </HStack>
-                      <SimpleGrid columns={2} spacing={2}>
-                        <Box>
-                          <Text fontSize="xs" color={mutedText}>Work Orders</Text>
-                          <HStack spacing={1}>
-                            <Badge 
-                              colorScheme={record.stats.openWorkOrders > 0 ? 'orange' : 'green'} 
-                              variant="subtle"
-                              size="sm"
-                            >
-                              {record.stats.openWorkOrders} active
-                            </Badge>
-                            <Badge variant="subtle" size="sm">
-                              {record.stats.totalWorkOrders} total
-                            </Badge>
-                          </HStack>
-                        </Box>
-                        <Box>
-                          <Text fontSize="xs" color={mutedText}>Balance</Text>
-                          <Text fontSize="sm" fontWeight="bold" color={record.stats.outstandingBalance > 0 ? 'red.500' : 'green.500'}>
-                            {formatCurrency(record.stats.outstandingBalance)}
-                          </Text>
-                        </Box>
-                      </SimpleGrid>
-                    </Box>
-
-                    {/* Recent Activity */}
-                    {record.recentWorkOrders.length > 0 && (
-                      <Box>
-                        <Text fontSize="xs" color={mutedText} mb={2}>
-                          Recent Activity
-                        </Text>
-                        <VStack align="stretch" spacing={1}>
-                          {record.recentWorkOrders.slice(0, 2).map((order) => (
-                            <Box 
-                              key={order.id} 
-                              p={2} 
-                              borderRadius="md" 
-                              bg={hoverBg}
-                              fontSize="xs"
-                            >
-                              <Text fontWeight="medium" noOfLines={1}>{order.code}</Text>
-                              <Text color={mutedText} noOfLines={1}>
-                                {order.status} • {formatCurrency(Number(order.totalCost))}
-                              </Text>
-                            </Box>
-                          ))}
-                          {record.recentWorkOrders.length > 2 && (
-                            <Text fontSize="xs" color={mutedText} textAlign="center">
-                              +{record.recentWorkOrders.length - 2} more
+                    ) : null}
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color={mutedText}>
+                      Contact
+                    </Text>
+                    <Text>{record.customer.phone}</Text>
+                    {record.customer.email ? (
+                      <Text fontSize="sm" color={mutedText}>
+                        {record.customer.email}
+                      </Text>
+                    ) : null}
+                  </Box>
+                  <HStack spacing={2}>
+                    <Tag colorScheme={record.stats.openWorkOrders > 0 ? 'orange' : 'green'}>
+                      <TagLabel>{record.stats.openWorkOrders} active</TagLabel>
+                    </Tag>
+                    <Tag>
+                      <TagLabel>{record.stats.totalWorkOrders} total</TagLabel>
+                    </Tag>
+                  </HStack>
+                  <Box>
+                    <Text fontSize="sm" color={mutedText}>
+                      Outstanding Balance
+                    </Text>
+                    <Text fontWeight="bold">{formatCurrency(record.stats.outstandingBalance)}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color={mutedText}>
+                      Recent Work Orders
+                    </Text>
+                    {record.recentWorkOrders.length === 0 ? (
+                      <Text fontSize="sm" color={mutedText}>
+                        No work orders logged.
+                      </Text>
+                    ) : (
+                      <VStack align="stretch" spacing={2}>
+                        {record.recentWorkOrders.map((order) => (
+                          <Box key={order.id} borderWidth="1px" borderRadius="md" borderColor={borderColor} p={2}>
+                            <Text fontWeight="medium">{order.code}</Text>
+                            <Text fontSize="sm" color={mutedText}>
+                              {order.status} • {formatCurrency(Number(order.totalCost))}
                             </Text>
-                          )}
-                        </VStack>
-                      </Box>
+                          </Box>
+                        ))}
+                      </VStack>
                     )}
-                  </VStack>
-                </CardBody>
-              </Card>
+                  </Box>
+                </VStack>
+              </Box>
             ))}
           </SimpleGrid>
         )}
       </Stack>
 
-      {/* Form Modal */}
       <FormModal
         isOpen={formDisclosure.isOpen}
         onClose={() => {
           formDisclosure.onClose();
           resetForm();
         }}
-        title={recordBeingEdited ? 'Edit Customer & Vehicle' : 'Add New Customer & Vehicle'}
+        title={recordBeingEdited ? 'Edit Metadata' : 'Add Metadata'}
         onSubmit={handleSubmit}
         isSubmitting={recordBeingEdited ? isUpdating : isCreating}
-        size={(modalSize ?? 'xl') as 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full'}
-        submitLabel={recordBeingEdited ? 'Update Record' : 'Create Record'}
-        variant="default"
       >
-        <Stack spacing={6} divider={<Divider />}>
-          {/* Customer Section */}
-          <Box>
-            <HStack spacing={3} mb={4}>
-              <Icon as={FiUser} color="brand.500" boxSize={5} />
-              <Text fontSize="lg" fontWeight="semibold">Customer Information</Text>
-            </HStack>
-            <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
-              <FormControl isRequired>
-                <FormLabel>First Name</FormLabel>
-                <Input 
-                  value={formState.customer.firstName} 
-                  onChange={handleFormChange('customer', 'firstName')}
-                  placeholder="Enter first name"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Last Name</FormLabel>
-                <Input 
-                  value={formState.customer.lastName} 
-                  onChange={handleFormChange('customer', 'lastName')}
-                  placeholder="Enter last name"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Phone Number</FormLabel>
-                <Input 
-                  value={formState.customer.phone} 
-                  onChange={handleFormChange('customer', 'phone')}
-                  placeholder="Enter phone number"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Email Address</FormLabel>
-                <Input 
-                  type="email"
-                  value={formState.customer.email} 
-                  onChange={handleFormChange('customer', 'email')}
-                  placeholder="Enter email address"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Company</FormLabel>
-                <Input 
-                  value={formState.customer.company} 
-                  onChange={handleFormChange('customer', 'company')}
-                  placeholder="Enter company name"
-                />
-              </FormControl>
-            </Grid>
-            <FormControl mt={4}>
-              <FormLabel>Customer Notes</FormLabel>
-              <Textarea 
-                value={formState.customer.notes} 
-                onChange={handleFormChange('customer', 'notes')} 
-                rows={3}
-                placeholder="Additional notes about the customer..."
-              />
+        <Stack spacing={4}>
+          <Text fontWeight="semibold">Customer</Text>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>First Name</FormLabel>
+              <Input value={formState.customer.firstName} onChange={handleFormChange('customer', 'firstName')} />
             </FormControl>
-          </Box>
+            <FormControl isRequired>
+              <FormLabel>Last Name</FormLabel>
+              <Input value={formState.customer.lastName} onChange={handleFormChange('customer', 'lastName')} />
+            </FormControl>
+          </SimpleGrid>
+          <FormControl isRequired>
+            <FormLabel>Phone</FormLabel>
+            <Input value={formState.customer.phone} onChange={handleFormChange('customer', 'phone')} />
+          </FormControl>
+          <FormControl>
+            <FormLabel>Email</FormLabel>
+            <Input value={formState.customer.email} onChange={handleFormChange('customer', 'email')} />
+          </FormControl>
+          <FormControl>
+            <FormLabel>Notes</FormLabel>
+            <Textarea value={formState.customer.notes} onChange={handleFormChange('customer', 'notes')} rows={2} />
+          </FormControl>
 
-          {/* Vehicle Section */}
-          <Box>
-            <HStack spacing={3} mb={4}>
-              <Icon as={FaCar} color="brand.500" boxSize={5} />
-              <Text fontSize="lg" fontWeight="semibold">Vehicle Information</Text>
-            </HStack>
-            <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
-              <FormControl isRequired>
-                <FormLabel>VIN</FormLabel>
-                <Input 
-                  value={formState.vehicle.vin} 
-                  onChange={handleFormChange('vehicle', 'vin')}
-                  placeholder="Enter vehicle VIN"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Make</FormLabel>
-                <Input 
-                  value={formState.vehicle.make} 
-                  onChange={handleFormChange('vehicle', 'make')}
-                  placeholder="Enter vehicle make"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Model</FormLabel>
-                <Input 
-                  value={formState.vehicle.model} 
-                  onChange={handleFormChange('vehicle', 'model')}
-                  placeholder="Enter vehicle model"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Year</FormLabel>
-                <Input
-                  type="number"
-                  value={formState.vehicle.year}
-                  onChange={handleFormChange('vehicle', 'year')}
-                  placeholder="Enter vehicle year"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>License Plate</FormLabel>
-                <Input 
-                  value={formState.vehicle.licensePlate ?? ''} 
-                  onChange={handleFormChange('vehicle', 'licensePlate')}
-                  placeholder="Enter license plate"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Mileage</FormLabel>
-                <Input
-                  type="number"
-                  value={formState.vehicle.mileage || ''}
-                  onChange={handleFormChange('vehicle', 'mileage')}
-                  placeholder="Enter current mileage"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Color</FormLabel>
-                <Input 
-                  value={formState.vehicle.color ?? ''} 
-                  onChange={handleFormChange('vehicle', 'color')}
-                  placeholder="Enter vehicle color"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Engine</FormLabel>
-                <Input 
-                  value={formState.vehicle.engine ?? ''} 
-                  onChange={handleFormChange('vehicle', 'engine')}
-                  placeholder="Enter engine details"
-                />
-              </FormControl>
-            </Grid>
-            <FormControl mt={4}>
-              <FormLabel>Vehicle Notes</FormLabel>
-              <Textarea 
-                value={formState.vehicle.notes} 
-                onChange={handleFormChange('vehicle', 'notes')} 
-                rows={3}
-                placeholder="Additional notes about the vehicle..."
+          <Divider />
+          <Text fontWeight="semibold">Vehicle</Text>
+          <FormControl isRequired>
+            <FormLabel>VIN</FormLabel>
+            <Input value={formState.vehicle.vin} onChange={handleFormChange('vehicle', 'vin')} />
+          </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>Make</FormLabel>
+              <Input value={formState.vehicle.make} onChange={handleFormChange('vehicle', 'make')} />
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel>Model</FormLabel>
+              <Input value={formState.vehicle.model} onChange={handleFormChange('vehicle', 'model')} />
+            </FormControl>
+          </SimpleGrid>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>Year</FormLabel>
+              <Input
+                type="number"
+                value={formState.vehicle.year}
+                onChange={(event) => handleFormChange('vehicle', 'year')(event)}
               />
             </FormControl>
-          </Box>
+            <FormControl>
+              <FormLabel>License Plate</FormLabel>
+              <Input value={formState.vehicle.licensePlate ?? ''} onChange={handleFormChange('vehicle', 'licensePlate')} />
+            </FormControl>
+          </SimpleGrid>
         </Stack>
       </FormModal>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        isOpen={deleteDisclosure.isOpen} 
-        leastDestructiveRef={cancelDeleteRef} 
-        onClose={closeDeleteDialog}
-        isCentered
-      >
+      <AlertDialog isOpen={deleteDisclosure.isOpen} leastDestructiveRef={cancelDeleteRef} onClose={closeDeleteDialog}>
         <AlertDialogOverlay>
-          <AlertDialogContent mx={4}>
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Record
+              Delete Metadata
             </AlertDialogHeader>
             <AlertDialogBody>
-              {recordPendingDelete && (
-                <VStack align="stretch" spacing={3}>
-                  <Text>
-                    Are you sure you want to delete the record for{' '}
-                    <strong>{recordPendingDelete.customer.firstName} {recordPendingDelete.customer.lastName}</strong>?
-                  </Text>
-                  <Text color={mutedText}>
-                    This will remove the customer and their vehicle ({recordPendingDelete.vehicle.year} {recordPendingDelete.vehicle.make} {recordPendingDelete.vehicle.model}) 
-                    from the system. This action cannot be undone.
-                  </Text>
-                  {recordPendingDelete.stats.totalWorkOrders > 0 && (
-                    <Alert status="warning" size="sm" borderRadius="md">
-                      <AlertIcon />
-                      <Text fontSize="sm">
-                        This customer has {recordPendingDelete.stats.totalWorkOrders} work order(s) associated with them.
-                        Deleting this record may affect work order history.
-                      </Text>
-                    </Alert>
-                  )}
-                </VStack>
-              )}
+              {recordPendingDelete
+                ? `Delete vehicle ${recordPendingDelete.vehicle.make} ${recordPendingDelete.vehicle.model}?`
+                : 'Delete this metadata record?'}
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog} size="sm">
+              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog}>
                 Cancel
               </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={handleDelete} 
-                ml={3} 
-                isLoading={isDeleting}
-                size="sm"
-              >
-                Delete Record
+              <Button colorScheme="red" onClick={handleDelete} ml={3} isLoading={isDeleting}>
+                Delete
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

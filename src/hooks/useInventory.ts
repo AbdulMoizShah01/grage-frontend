@@ -14,8 +14,12 @@ type InventoryItemInput = {
   unitPrice?: number;
 };
 
-export const useInventory = () => {
-  const query = useApiQuery<InventoryItem[]>(['inventory'], '/inventory');
+export const useInventory = (search?: string) => {
+  const normalizedSearch = search?.trim() ?? '';
+  const path = normalizedSearch
+    ? `/inventory?search=${encodeURIComponent(normalizedSearch)}`
+    : '/inventory';
+  const query = useApiQuery<InventoryItem[]>(['inventory', normalizedSearch], path);
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -44,9 +48,6 @@ export const useInventory = () => {
     }
   });
 
-  const searchInventoryItems = (term: string) =>
-    apiRequest<InventoryItem[]>(`/inventory?search=${encodeURIComponent(term)}`);
-
   return {
     ...query,
     createInventoryItem: createMutation.mutateAsync,
@@ -54,7 +55,6 @@ export const useInventory = () => {
     updateInventoryItem: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
     deleteInventoryItem: deleteMutation.mutateAsync,
-    isDeleting: deleteMutation.isPending,
-    searchInventoryItems
+    isDeleting: deleteMutation.isPending
   };
 };

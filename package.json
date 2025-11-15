@@ -5,14 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build.js",
-    "type-check": "tsc --noEmit",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "check": "npm run lint && npm run build"
   },
   "dependencies": {
-    "@chakra-ui/react": "^2.10.9",
+    "@chakra-ui/react": "^2.9.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@tanstack/react-query": "^5.51.1",
@@ -20,7 +19,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^6.30.1",
+    "react-router-dom": "^6.26.1",
     "recharts": "^2.9.0",
     "zod": "^3.23.8"
   },

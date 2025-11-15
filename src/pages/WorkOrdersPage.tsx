@@ -1,4 +1,5 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+
+import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AlertIcon,
@@ -18,9 +19,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Divider,
   FormControl,
   FormLabel,
@@ -46,47 +44,11 @@ import {
   VStack,
   useColorModeValue,
   useDisclosure,
-  useToast,
-  Flex,
-  useBreakpointValue,
-  Grid,
-  GridItem,
-  Wrap,
-  WrapItem,
-  Avatar,
-  Skeleton,
-  SkeletonText,
-  Icon,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink
+  useToast
 } from '@chakra-ui/react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { 
-  MdAdd, 
-  MdCheckCircle, 
-  MdPrint, 
-  MdRemove, 
-  MdEdit,
-  MdDelete,
-  MdAssignment,
-  MdReceipt,
-  MdCarRepair,
-  MdPerson,
-  MdDirectionsCar,
-  MdSchedule,
-  MdAttachMoney,
-  MdInventory,
-  MdBuild,
-  MdWarning
-} from 'react-icons/md';
-import { FiTrash2, FiEdit2, FiUser, FiPhone, FiMail } from 'react-icons/fi';
-import { FaCar } from 'react-icons/fa';
+import { Link as RouterLink } from 'react-router-dom';
+import { MdAdd, MdCheckCircle, MdPrint, MdRemove } from 'react-icons/md';
+import { FiTrash2, FiEdit2 } from 'react-icons/fi';
 
 import { AppShell } from '../components/shell/AppShell';
 import { useWorkOrders, WorkOrderInput } from '../hooks/useWorkOrders';
@@ -100,11 +62,10 @@ import { WorkOrderStatus } from '../types/enums';
 import { WorkOrder } from '../types/api';
 import { formatCurrency } from '../utils/formatting';
 import { buildInvoiceCode, downloadInvoice } from '../utils/invoices';
-import { StatCard } from '../components/cards/StatCard';
 
 const LINE_ITEM_TYPES = [
-  { value: 'SERVICE', label: 'Service', icon: MdBuild },
-  { value: 'PART', label: 'Part', icon: MdInventory }
+  { value: 'SERVICE', label: 'Service' },
+  { value: 'PART', label: 'Part' }
 ] as const;
 
 type LineItemType = (typeof LINE_ITEM_TYPES)[number]['value'];
@@ -122,15 +83,14 @@ const createLineItem = (id: number): LineItemState => ({
   id,
   type: 'SERVICE',
   name: '',
-  quantity: 1,
+  quantity: 0,
   unitPrice: '',
   catalogId: ''
 });
 
 const customerInitialState = {
   fullName: '',
-  phone: '',
-  email: ''
+  phone: ''
 };
 
 const vehicleInitialState = {
@@ -142,7 +102,6 @@ const vehicleInitialState = {
   color: '',
   notes: ''
 };
-
 const VAT_RATE = 0.18;
 const nowLocalIso = () => new Date().toISOString().slice(0, 16);
 const combineName = (first: string, last: string) => `${first} ${last}`.trim();
@@ -153,6 +112,7 @@ const ensurePositiveNumber = (value: number, fallback: number) => {
   if (!Number.isFinite(value)) {
     return fallback;
   }
+
   return value > 0 ? value : fallback;
 };
 
@@ -199,28 +159,14 @@ const sanitizeOptional = (value?: string | null) => {
   if (value === undefined || value === null) {
     return undefined;
   }
+
   const trimmed = value.trim();
   return trimmed.length ? trimmed : undefined;
 };
 
-// Skeleton loader for work order rows
-const WorkOrderRowSkeleton = () => (
-  <Tr>
-    <Td><Skeleton height="20px" /></Td>
-    <Td><Skeleton height="20px" width="80px" /></Td>
-    <Td><Skeleton height="20px" width="120px" /></Td>
-    <Td><Skeleton height="20px" width="100px" /></Td>
-    <Td><Skeleton height="20px" width="140px" /></Td>
-    <Td><Skeleton height="20px" width="80px" /></Td>
-    <Td><Skeleton height="20px" width="100px" /></Td>
-    <Td><Skeleton height="20px" width="120px" /></Td>
-  </Tr>
-);
-
 export const WorkOrdersPage = () => {
   const toast = useToast();
   const lineItemIdRef = useRef(2);
-  const location = useLocation();
 
   const {
     data: workOrders,
@@ -276,58 +222,6 @@ export const WorkOrdersPage = () => {
     discount: '',
     notes: ''
   });
-
-  // Close drawer and dialogs when navigating away
-  useEffect(() => {
-    // Close edit drawer if open
-    if (editDisclosure.isOpen) {
-      editDisclosure.onClose();
-      setEditingOrder(null);
-    }
-    // Close delete dialog if open
-    if (deleteDisclosure.isOpen) {
-      deleteDisclosure.onClose();
-      setWorkOrderPendingDelete(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  // Cleanup: close drawer and dialogs on unmount
-  useEffect(() => {
-    return () => {
-      if (editDisclosure.isOpen) {
-        editDisclosure.onClose();
-      }
-      if (deleteDisclosure.isOpen) {
-        deleteDisclosure.onClose();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Responsive values
-  const gridColumns = useBreakpointValue({ 
-    base: 1, 
-    lg: 2 
-  });
-  const buttonSize = useBreakpointValue({ base: 'sm', md: 'md' });
-  const drawerSize = useBreakpointValue({ base: 'full', md: 'md', lg: 'lg' });
-  const tableVariant = useBreakpointValue({ 
-    base: 'simple', 
-    md: 'striped' 
-  });
-  const showCompactTable = useBreakpointValue({ base: true, md: false });
-
-  // Theme colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const mutedText = useColorModeValue('gray.600', 'gray.400');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
-  const accentColor = useColorModeValue('brand.500', 'brand.300');
-  const successColor = useColorModeValue('green.600', 'green.300');
-  const warningColor = useColorModeValue('orange.600', 'orange.300');
-  const dangerColor = useColorModeValue('red.600', 'red.300');
-
   const customerOptions = useMemo(() => customers ?? [], [customers]);
   const vehicleOptions = useMemo(() => vehicles ?? [], [vehicles]);
   const serviceOptions = useMemo(() => services ?? [], [services]);
@@ -356,23 +250,6 @@ export const WorkOrdersPage = () => {
   const parkingChargeValue = Number(parkingCharge) || 0;
   const grandTotal = serviceTotal + partsTotal + taxesValue + parkingChargeValue - discountValue;
 
-  // Calculate work order statistics
-  const workOrderStats = useMemo(() => {
-    if (!workOrderList.length) return null;
-    
-    const totalOrders = workOrderList.length;
-    const inProgressOrders = workOrderList.filter(order => order.status === WorkOrderStatus.IN_PROGRESS).length;
-    const pendingOrders = workOrderList.filter(order => order.status === WorkOrderStatus.PENDING).length;
-    const totalRevenue = workOrderList.reduce((sum, order) => sum + Number(order.totalCost), 0);
-
-    return {
-      totalOrders,
-      inProgressOrders,
-      pendingOrders,
-      totalRevenue
-    };
-  }, [workOrderList]);
-
   const handleCustomerFieldChange =
     (field: keyof typeof customerInitialState) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -393,63 +270,63 @@ export const WorkOrdersPage = () => {
       }));
     };
 
-  const handleLineItemChange = (id: number, field: keyof LineItemState, value: string | number) => {
-    setLineItems((previous) =>
-      previous.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
+const handleLineItemChange = (id: number, field: keyof LineItemState, value: string | number) => {
+  setLineItems((previous) =>
+    previous.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
 
-        if (field === 'type') {
-          return {
-            ...item,
-            type: value as LineItemType,
-            catalogId: '',
-            name: '',
-            unitPrice: ''
-          };
-        }
+      if (field === 'type') {
+        return {
+          ...item,
+          type: value as LineItemType,
+          catalogId: '',
+          name: '',
+          unitPrice: ''
+        };
+      }
 
-        if (field === 'quantity') {
-          const parsed = Number(value);
-          const quantityValue = Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
-          return { ...item, quantity: quantityValue };
-        }
+      if (field === 'quantity') {
+        const parsed = Number(value);
+        const quantityValue = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        return { ...item, quantity: quantityValue };
+      }
 
-        if (field === 'name') {
-          const typedValue = typeof value === 'string' ? value : String(value);
-          const dataset = item.type === 'SERVICE' ? serviceOptions : inventoryOptions;
-          const match = dataset.find(
-            (option) => option.name.trim().toLowerCase() === typedValue.trim().toLowerCase()
-          );
+      if (field === 'name') {
+        const typedValue = typeof value === 'string' ? value : String(value);
+        const dataset = item.type === 'SERVICE' ? serviceOptions : inventoryOptions;
+        const match = dataset.find(
+          (option) => option.name.trim().toLowerCase() === typedValue.trim().toLowerCase()
+        );
 
-          const nextUnitPrice = () => {
-            if (!match) {
-              return item.unitPrice;
-            }
+        const nextUnitPrice = () => {
+          if (!match) {
+            return item.unitPrice;
+          }
 
-            if (item.type === 'SERVICE') {
-              const serviceMatch = match as (typeof serviceOptions)[number];
-              return serviceMatch.defaultPrice ? String(serviceMatch.defaultPrice) : item.unitPrice;
-            }
+          if (item.type === 'SERVICE') {
+            const serviceMatch = match as (typeof serviceOptions)[number];
+            return serviceMatch.defaultPrice ? String(serviceMatch.defaultPrice) : item.unitPrice;
+          }
 
-            const inventoryMatch = match as (typeof inventoryOptions)[number];
-            return inventoryMatch.unitPrice ? String(inventoryMatch.unitPrice) : item.unitPrice;
-          };
-
-          return {
-            ...item,
-            name: typedValue,
-            catalogId: match ? String(match.id) : '',
-            unitPrice: nextUnitPrice()
-          };
-        }
+          const inventoryMatch = match as (typeof inventoryOptions)[number];
+          return inventoryMatch.unitPrice ? String(inventoryMatch.unitPrice) : item.unitPrice;
+        };
 
         return {
           ...item,
-          [field]: value
+          name: typedValue,
+          catalogId: match ? String(match.id) : '',
+          unitPrice: nextUnitPrice()
         };
-      })
+      }
+
+      return {
+        ...item,
+        [field]: value
+      };
+    })
     );
   };
 
@@ -475,68 +352,39 @@ export const WorkOrdersPage = () => {
     lineItemIdRef.current = 2;
     setLineItems([createLineItem(1)]);
   };
-
   const handleSubmit = async () => {
     if (!customerForm.fullName.trim()) {
-      toast({ 
-        status: 'warning', 
-        title: 'Customer name required',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Provide the customer full name.' });
       return;
     }
 
     if (!customerForm.phone.trim()) {
-      toast({ 
-        status: 'warning', 
-        title: 'Customer phone number required',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Customer phone number is required.' });
       return;
     }
 
     if (!vehicleForm.vin.trim()) {
-      toast({ 
-        status: 'warning', 
-        title: 'Vehicle VIN required',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'VIN is required to register the vehicle.' });
       return;
     }
 
     if (!vehicleForm.make.trim() || !vehicleForm.model.trim()) {
-      toast({ 
-        status: 'warning', 
-        title: 'Vehicle make and model required',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Vehicle make and model are required.' });
       return;
     }
 
     if (!description.trim()) {
-      toast({ 
-        status: 'warning', 
-        title: 'Work order description required',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Add a short description for the work order.' });
       return;
     }
 
     if (!lineItems.length) {
-      toast({ 
-        status: 'warning', 
-        title: 'Add at least one service or part',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Add at least one service or part to the quotation.' });
       return;
     }
 
     if (lineItems.some((item) => !item.name.trim())) {
-      toast({ 
-        status: 'warning', 
-        title: 'All line items need a name',
-        position: 'top-right'
-      });
+      toast({ status: 'warning', title: 'Each line item needs a name.' });
       return;
     }
 
@@ -571,9 +419,9 @@ export const WorkOrdersPage = () => {
       ) {
         toast({
           status: 'error',
-          title: 'Vehicle already assigned to different customer',
-          description: 'Please update the vehicle record or use a different VIN.',
-          position: 'top-right'
+          title: 'Vehicle already assigned',
+          description:
+            'The VIN you entered is associated with a different customer. Adjust the details or update the vehicle record first.'
         });
         return;
       }
@@ -623,22 +471,16 @@ export const WorkOrdersPage = () => {
       };
 
       await createWorkOrder(payload);
-      toast({ 
-        status: 'success', 
-        title: 'Work order created successfully',
-        position: 'top-right'
-      });
+      toast({ status: 'success', title: 'Work order created successfully.' });
       resetForm();
     } catch (submitError) {
       toast({
         status: 'error',
-        title: 'Unable to create work order',
-        description: submitError instanceof Error ? submitError.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to create the work order.',
+        description: submitError instanceof Error ? submitError.message : 'Please try again.'
       });
     }
   };
-
   const openEditDrawer = (order: WorkOrder) => {
     setEditingOrder(order);
     setEditFormState({
@@ -691,38 +533,26 @@ export const WorkOrdersPage = () => {
           notes: editFormState.notes.trim() || undefined
         }
       });
-      toast({ 
-        status: 'success', 
-        title: 'Work order updated successfully',
-        position: 'top-right'
-      });
+      toast({ status: 'success', title: 'Work order updated.' });
       closeEditDrawer();
     } catch (error) {
       toast({
         status: 'error',
-        title: 'Unable to update work order',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to update work order.',
+        description: error instanceof Error ? error.message : 'Please try again.'
       });
     }
   };
-
-  const handleGenerateInvoice = async (order: WorkOrder) => {
+    const handleGenerateInvoice = async (order: WorkOrder) => {
     try {
       const invoiceName = buildInvoiceCode(order).replace(/\//g, '-');
       await downloadInvoice(order.id, invoiceName);
-      toast({ 
-        status: 'success', 
-        title: 'Invoice generated successfully',
-        description: 'Your invoice is ready for download.',
-        position: 'top-right'
-      });
+      toast({ status: 'success', title: 'Invoice ready for download.' });
     } catch (error) {
       toast({
         status: 'error',
-        title: 'Unable to generate invoice',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to generate invoice.',
+        description: error instanceof Error ? error.message : 'Please try again.'
       });
     }
   };
@@ -733,16 +563,14 @@ export const WorkOrdersPage = () => {
       await completeWorkOrder(order.id);
       toast({
         status: 'success',
-        title: 'Work order completed',
-        description: `${order.code} has been marked as completed and moved to history.`,
-        position: 'top-right'
+        title: `${order.code} marked as completed`,
+        description: 'You can find it in Work Order History.'
       });
     } catch (completeError) {
       toast({
         status: 'error',
-        title: 'Unable to complete work order',
-        description: completeError instanceof Error ? completeError.message : 'Please try again.',
-        position: 'top-right'
+        title: 'Unable to mark work order as completed',
+        description: completeError instanceof Error ? completeError.message : 'Please try again.'
       });
     } finally {
       setCompletingId(null);
@@ -769,899 +597,391 @@ export const WorkOrdersPage = () => {
       toast({
         status: 'success',
         title: 'Work order deleted',
-        description: `${workOrderPendingDelete.code} has been removed from the system.`,
-        position: 'top-right'
+        description: `${workOrderPendingDelete.code} has been removed.`
       });
       closeDeleteDialog();
     } catch (deleteError) {
       toast({
         status: 'error',
         title: 'Unable to delete work order',
-        description: deleteError instanceof Error ? deleteError.message : 'Please resolve any linked assignments and try again.',
-        position: 'top-right'
+        description:
+          deleteError instanceof Error ? deleteError.message : 'Resolve linked assignments and try again.'
       });
     }
   };
-
-  // Mobile-friendly work order cards for small screens
-  const WorkOrderCard = ({ order }: { order: WorkOrder }) => (
-    <Card 
-      bg={cardBg} 
-      border="1px" 
-      borderColor={borderColor}
-      transition="all 0.2s"
-      _hover={{ 
-        transform: 'translateY(-2px)',
-        boxShadow: 'lg'
-      }}
-    >
-      <CardBody>
-        <VStack align="stretch" spacing={3}>
-          {/* Header */}
-          <Flex justify="space-between" align="flex-start">
-            <Box>
-              <Text fontWeight="bold" fontSize="lg" color={accentColor}>
-                {order.code}
-              </Text>
-              <Badge
-                colorScheme={
-                  order.status === WorkOrderStatus.COMPLETED
-                    ? 'green'
-                    : order.status === WorkOrderStatus.IN_PROGRESS
-                    ? 'blue'
-                    : 'orange'
-                }
-                variant="subtle"
-                size="sm"
-              >
-                {order.status}
-              </Badge>
-            </Box>
-            <Text fontWeight="bold" fontSize="lg">
-              {formatCurrency(Number(order.totalCost))}
-            </Text>
-          </Flex>
-
-          {/* Customer & Vehicle */}
-          <Box>
-            <Text fontSize="sm" color={mutedText} mb={1}>Customer & Vehicle</Text>
-            <Text fontWeight="medium">
-              {order.customer ? combineName(order.customer.firstName, order.customer.lastName) : 'Unassigned'}
-            </Text>
-            <Text fontSize="sm" color={mutedText}>
-              {order.vehicle.year} {order.vehicle.make} {order.vehicle.model}
-            </Text>
-          </Box>
-
-          {/* Dates */}
-          <Box>
-            <Text fontSize="sm" color={mutedText} mb={1}>Timeline</Text>
-            <Text fontSize="sm">
-              Arrived: {new Date(order.arrivalDate ?? order.createdAt).toLocaleDateString()}
-            </Text>
-            {order.scheduledDate && (
-              <Text fontSize="sm" color={mutedText}>
-                Scheduled: {new Date(order.scheduledDate).toLocaleDateString()}
-              </Text>
-            )}
-          </Box>
-
-          {/* Assignments */}
-          <Box>
-            <Text fontSize="sm" color={mutedText} mb={1}>Assigned To</Text>
-            {order.assignments.length === 0 ? (
-              <Text fontSize="sm" color={mutedText}>Unassigned</Text>
-            ) : (
-              <Wrap spacing={1}>
-                {order.assignments.map((assignment) => (
-                  <WrapItem key={assignment.id}>
-                    <Badge colorScheme="blue" variant="subtle" fontSize="xs">
-                      {assignment.worker.name}
-                    </Badge>
-                  </WrapItem>
-                ))}
-              </Wrap>
-            )}
-          </Box>
-
-          {/* Actions */}
-          <Flex justify="space-between" pt={2}>
-            <HStack spacing={1}>
-              <Tooltip label="Edit work order">
-                <IconButton
-                  aria-label="Edit work order"
-                  icon={<MdEdit />}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => openEditDrawer(order)}
-                />
-              </Tooltip>
-              <Tooltip label="Mark as completed">
-                <IconButton
-                  aria-label="Mark work order as completed"
-                  icon={<MdCheckCircle />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="green"
-                  onClick={() => handleCompleteWorkOrder(order)}
-                  isDisabled={isCompleting}
-                  isLoading={completingId === order.id}
-                />
-              </Tooltip>
-            </HStack>
-            <HStack spacing={1}>
-              <Tooltip label="Generate invoice">
-                <IconButton
-                  aria-label="Generate invoice"
-                  icon={<MdPrint />}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleGenerateInvoice(order)}
-                />
-              </Tooltip>
-              <Tooltip label="Delete work order">
-                <IconButton
-                  aria-label="Delete work order"
-                  icon={<MdDelete />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="red"
-                  onClick={() => openDeleteDialog(order)}
-                  isDisabled={isDeleting}
-                />
-              </Tooltip>
-            </HStack>
-          </Flex>
-        </VStack>
-      </CardBody>
-    </Card>
-  );
-
   return (
     <AppShell
-      title="Work Orders"
-      inventoryAlertsCount={summary?.inventoryAlertsCount}
-      breadcrumbs={[
-        { label: 'Dashboard', to: '/' },
-        { label: 'Work Orders' }
-      ]}
+      title="Active Work Orders"
       actions={
-        <Button 
-          colorScheme="brand" 
-          onClick={handleSubmit} 
-          isLoading={isCreating}
-          size={buttonSize}
-          leftIcon={<MdAdd />}
-        >
+        <Button colorScheme="brand" onClick={handleSubmit} isLoading={isCreating}>
           Create Work Order
         </Button>
       }
+      inventoryAlertsCount={summary?.inventoryAlertsCount}
     >
-      <Stack spacing={6}>
-        {/* Work Order Statistics */}
-        {workOrderStats && (
-          <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-            <StatCard 
-              label="Total Orders" 
-              value={workOrderStats.totalOrders}
-              icon={MdAssignment}
-              colorScheme="blue"
-              size="sm"
-            />
-            <StatCard 
-              label="In Progress" 
-              value={workOrderStats.inProgressOrders}
-              icon={MdBuild}
-              colorScheme="orange"
-              size="sm"
-            />
-            <StatCard 
-              label="Pending" 
-              value={workOrderStats.pendingOrders}
-              icon={MdSchedule}
-              colorScheme="orange"
-              size="sm"
-            />
-            <StatCard 
-              label="Total Revenue" 
-              value={formatCurrency(workOrderStats.totalRevenue)}
-              icon={MdAttachMoney}
-              colorScheme="green"
-              size="sm"
-              isCurrency
-            />
-          </SimpleGrid>
-        )}
-
-        {/* Main Content Grid */}
-        <Grid 
-          templateColumns={{ 
-            base: '1fr', 
-            xl: gridColumns ? `repeat(${gridColumns}, 1fr)` : '1fr' 
-          }} 
-          gap={6}
-        >
-          {/* Left Column - Forms */}
-          <GridItem>
-            <Stack spacing={6}>
-              {/* Customer Details Card */}
-              <Card bg={cardBg} border="1px" borderColor={borderColor}>
-                <CardHeader pb={4}>
-                  <HStack spacing={3}>
-                    <Icon as={FiUser} color={accentColor} boxSize={5} />
-                    <Text fontSize="lg" fontWeight="semibold">Customer Details</Text>
-                  </HStack>
-                  <Text fontSize="sm" color={mutedText} mt={1}>
-                    Provide customer information. Existing customers will be automatically linked.
-                  </Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  {matchedCustomer && (
-                    <Alert status="info" borderRadius="md" mb={4} size="sm">
-                      <AlertIcon />
-                      <Box>
-                        <Text fontWeight="medium">Existing Customer Found</Text>
-                        <Text fontSize="sm">
-                          {combineName(matchedCustomer.firstName, matchedCustomer.lastName)} • {matchedCustomer.phone}
-                        </Text>
-                      </Box>
-                    </Alert>
-                  )}
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel>Full Name</FormLabel>
-                      <Input 
-                        value={customerForm.fullName} 
-                        onChange={handleCustomerFieldChange('fullName')} 
-                        placeholder="e.g. Jane Smith" 
-                      />
-                    </FormControl>
-                    <FormControl isRequired>
-                      <FormLabel>Phone Number</FormLabel>
-                      <Input 
-                        value={customerForm.phone} 
-                        onChange={handleCustomerFieldChange('phone')} 
-                        placeholder="Contact number" 
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Email Address</FormLabel>
-                      <Input 
-                        type="email"
-                        value={customerForm.email} 
-                        onChange={handleCustomerFieldChange('email')} 
-                        placeholder="Optional email" 
-                      />
-                    </FormControl>
-                  </SimpleGrid>
-                  <Text fontSize="sm" color={mutedText} mt={4}>
-                    Need advanced customer management?{' '}
-                    <Link as={RouterLink} to="/customers" color="brand.500" fontWeight="medium">
-                      Open customer directory
-                    </Link>
-                  </Text>
-                </CardBody>
-              </Card>
-
-              {/* Vehicle Details Card */}
-              <Card bg={cardBg} border="1px" borderColor={borderColor}>
-                <CardHeader pb={4}>
-                  <HStack spacing={3}>
-                    <Icon as={FaCar} color={accentColor} boxSize={5} />
-                    <Text fontSize="lg" fontWeight="semibold">Vehicle Details</Text>
-                  </HStack>
-                  <Text fontSize="sm" color={mutedText} mt={1}>
-                    Enter vehicle information. Matching VIN will reuse existing records.
-                  </Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  {matchedVehicle && (
-                    <Alert status="info" borderRadius="md" mb={4} size="sm">
-                      <AlertIcon />
-                      <Box>
-                        <Text fontWeight="medium">Existing Vehicle Found</Text>
-                        <Text fontSize="sm">
-                          {matchedVehicle.year} {matchedVehicle.make} {matchedVehicle.model} • {matchedVehicle.vin}
-                        </Text>
-                      </Box>
-                    </Alert>
-                  )}
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel>VIN</FormLabel>
-                      <Input 
-                        value={vehicleForm.vin} 
-                        onChange={handleVehicleFieldChange('vin')} 
-                        placeholder="Vehicle Identification Number" 
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>License Plate</FormLabel>
-                      <Input 
-                        value={vehicleForm.licensePlate} 
-                        onChange={handleVehicleFieldChange('licensePlate')} 
-                        placeholder="Optional plate number" 
-                      />
-                    </FormControl>
-                    <FormControl isRequired>
-                      <FormLabel>Make</FormLabel>
-                      <Input 
-                        value={vehicleForm.make} 
-                        onChange={handleVehicleFieldChange('make')} 
-                        placeholder="Manufacturer" 
-                      />
-                    </FormControl>
-                    <FormControl isRequired>
-                      <FormLabel>Model</FormLabel>
-                      <Input 
-                        value={vehicleForm.model} 
-                        onChange={handleVehicleFieldChange('model')} 
-                        placeholder="Model" 
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Year</FormLabel>
-                      <Input 
-                        value={vehicleForm.year} 
-                        onChange={handleVehicleFieldChange('year')} 
-                        placeholder="Year" 
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Color</FormLabel>
-                      <Input 
-                        value={vehicleForm.color} 
-                        onChange={handleVehicleFieldChange('color')} 
-                        placeholder="Vehicle color" 
-                      />
-                    </FormControl>
-                  </SimpleGrid>
-                  <FormControl mt={4}>
-                    <FormLabel>Vehicle Notes</FormLabel>
-                    <Textarea 
-                      value={vehicleForm.notes} 
-                      onChange={handleVehicleFieldChange('notes')} 
-                      placeholder="Optional notes (e.g. prior issues, special features)" 
-                      rows={3} 
-                    />
-                  </FormControl>
-                  <Text fontSize="sm" color={mutedText} mt={4}>
-                    Manage the full vehicle roster from the{' '}
-                    <Link as={RouterLink} to="/vehicles" color="brand.500" fontWeight="medium">
-                      vehicles page
-                    </Link>
-                  </Text>
-                </CardBody>
-              </Card>
-            </Stack>
-          </GridItem>
-
-          {/* Right Column - Job Details & Services */}
-          <GridItem>
-            <Stack spacing={6}>
-              {/* Job Details Card */}
-              <Card bg={cardBg} border="1px" borderColor={borderColor}>
-                <CardHeader pb={4}>
-                  <HStack spacing={3}>
-                    <Icon as={MdCarRepair} color={accentColor} boxSize={5} />
-                    <Text fontSize="lg" fontWeight="semibold">Job Details</Text>
-                  </HStack>
-                  <Text fontSize="sm" color={mutedText} mt={1}>
-                    Work orders start as active jobs and can be marked complete when finished.
-                  </Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <Stack spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel>Work Description</FormLabel>
-                      <Input 
-                        value={description} 
-                        onChange={(event) => setDescription(event.target.value)} 
-                        placeholder="Brief summary of the work to be performed" 
-                      />
-                    </FormControl>
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                      <FormControl isRequired>
-                        <FormLabel>Arrival Date & Time</FormLabel>
-                        <Input 
-                          type="datetime-local" 
-                          value={arrivalDate} 
-                          onChange={(event) => setArrivalDate(event.target.value)} 
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel>Scheduled Date & Time</FormLabel>
-                        <Input 
-                          type="datetime-local" 
-                          value={scheduledDate} 
-                          onChange={(event) => setScheduledDate(event.target.value)} 
-                        />
-                      </FormControl>
-                    </SimpleGrid>
-                    <FormControl>
-                      <FormLabel>Assign Technician</FormLabel>
-                      <Select 
-                        placeholder="Select technician (optional)" 
-                        value={workerId} 
-                        onChange={(event) => setWorkerId(event.target.value)}
-                      >
-                        {workerOptions.map((worker) => (
-                          <option key={worker.id} value={worker.id}>
-                            {worker.name} ({worker.totalJobs} jobs)
-                          </option>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Internal Notes</FormLabel>
-                      <Textarea 
-                        value={notes} 
-                        onChange={(event) => setNotes(event.target.value)} 
-                        placeholder="Private notes for the workshop team" 
-                        rows={3} 
-                      />
-                    </FormControl>
-                    
-                    <Divider />
-                    
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                      <FormControl>
-                        <FormLabel>Parking Charge</FormLabel>
-                        <NumberInput 
-                          min={0} 
-                          value={parkingCharge} 
-                          onChange={(value) => setParkingCharge(value)} 
-                          clampValueOnBlur={false}
-                        >
-                          <NumberInputField placeholder="0.00" />
-                        </NumberInput>
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel>Discount</FormLabel>
-                        <NumberInput 
-                          min={0} 
-                          value={discount} 
-                          onChange={(value) => setDiscount(value)} 
-                          clampValueOnBlur={false}
-                        >
-                          <NumberInputField placeholder="0.00" />
-                        </NumberInput>
-                      </FormControl>
-                    </SimpleGrid>
-
-                    {/* Pricing Summary */}
-                    <Card bg={useColorModeValue('gray.50', 'gray.700')} variant="outline">
-                      <CardBody>
-                        <Text fontWeight="semibold" mb={3}>Pricing Summary</Text>
-                        <VStack align="stretch" spacing={2}>
-                          <Flex justify="space-between">
-                            <Text fontSize="sm">Labor:</Text>
-                            <Text fontSize="sm" fontWeight="medium">{formatCurrency(serviceTotal)}</Text>
-                          </Flex>
-                          <Flex justify="space-between">
-                            <Text fontSize="sm">Parts:</Text>
-                            <Text fontSize="sm" fontWeight="medium">{formatCurrency(partsTotal)}</Text>
-                          </Flex>
-                          <Flex justify="space-between">
-                            <Text fontSize="sm">Taxes (18%):</Text>
-                            <Text fontSize="sm" fontWeight="medium">{formatCurrency(taxesValue)}</Text>
-                          </Flex>
-                          <Flex justify="space-between">
-                            <Text fontSize="sm">Parking:</Text>
-                            <Text fontSize="sm" fontWeight="medium">{formatCurrency(parkingChargeValue)}</Text>
-                          </Flex>
-                          <Flex justify="space-between">
-                            <Text fontSize="sm">Discount:</Text>
-                            <Text fontSize="sm" color={dangerColor}>-{formatCurrency(discountValue)}</Text>
-                          </Flex>
-                          <Divider />
-                          <Flex justify="space-between">
-                            <Text fontWeight="bold">Total:</Text>
-                            <Text fontWeight="bold" color={accentColor} fontSize="lg">
-                              {formatCurrency(grandTotal)}
-                            </Text>
-                          </Flex>
-                        </VStack>
-                      </CardBody>
-                    </Card>
-                  </Stack>
-                </CardBody>
-              </Card>
-
-              {/* Services & Parts Card */}
-              <Card bg={cardBg} border="1px" borderColor={borderColor}>
-                <CardHeader pb={4}>
-                  <HStack spacing={3}>
-                    <Icon as={MdReceipt} color={accentColor} boxSize={5} />
-                    <Text fontSize="lg" fontWeight="semibold">Services & Parts</Text>
-                  </HStack>
-                  <Text fontSize="sm" color={mutedText} mt={1}>
-                    Add services and parts to this work order. Prices will be calculated automatically.
-                  </Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <VStack align="stretch" spacing={4}>
-                    {lineItems.map((item) => (
-                      <Card key={item.id} variant="outline" bg={useColorModeValue('gray.50', 'gray.700')}>
-                        <CardBody>
-                          <VStack align="stretch" spacing={4}>
-                            <Flex justify="space-between" align="center">
-                              <HStack spacing={3}>
-                                <Icon 
-                                  as={LINE_ITEM_TYPES.find(t => t.value === item.type)?.icon} 
-                                  color={accentColor} 
-                                  boxSize={4} 
-                                />
-                                <Text fontWeight="medium">Line Item {item.id}</Text>
-                              </HStack>
-                              <IconButton
-                                aria-label="Remove line item"
-                                size="sm"
-                                icon={<MdRemove />}
-                                onClick={() => removeLineItem(item.id)}
-                                isDisabled={lineItems.length === 1}
-                                colorScheme="red"
-                                variant="ghost"
-                              />
-                            </Flex>
-                            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
-                              <FormControl>
-                                <FormLabel>Type</FormLabel>
-                                <Select 
-                                  value={item.type} 
-                                  onChange={(event) => handleLineItemChange(item.id, 'type', event.target.value as LineItemType)}
-                                >
-                                  {LINE_ITEM_TYPES.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                              <FormControl>
-                                <FormLabel>Item Name</FormLabel>
-                                <Input
-                                  list={`line-item-${item.id}`}
-                                  value={item.name}
-                                  onChange={(event) => handleLineItemChange(item.id, 'name', event.target.value)}
-                                  placeholder={item.type === 'SERVICE' ? 'Service name' : 'Part name'}
-                                />
-                                <datalist id={`line-item-${item.id}`}>
-                                  {(item.type === 'SERVICE' ? serviceOptions : inventoryOptions).map((option) => (
-                                    <option key={option.id} value={option.name} />
-                                  ))}
-                                </datalist>
-                              </FormControl>
-                              <FormControl>
-                                <FormLabel>Quantity</FormLabel>
-                                <NumberInput
-                                  min={1}
-                                  value={item.quantity}
-                                  onChange={(_, valueNumber) => {
-                                    const safeValue = Number.isFinite(valueNumber) ? Math.max(1, valueNumber) : item.quantity;
-                                    handleLineItemChange(item.id, 'quantity', safeValue);
-                                  }}
-                                >
-                                  <NumberInputField />
-                                </NumberInput>
-                              </FormControl>
-                              <FormControl>
-                                <FormLabel>Unit Price</FormLabel>
-                                <NumberInput
-                                  min={0}
-                                  precision={2}
-                                  value={item.unitPrice}
-                                  onChange={(value) => handleLineItemChange(item.id, 'unitPrice', value)}
-                                >
-                                  <NumberInputField placeholder="0.00" />
-                                </NumberInput>
-                              </FormControl>
-                            </SimpleGrid>
-                            <Flex justify="space-between" align="center" pt={2}>
-                              <Text fontSize="sm" color={mutedText}>
-                                {item.type === 'SERVICE' ? 'Service' : 'Part'} • {item.quantity} × {formatCurrency(Number(item.unitPrice) || 0)}
-                              </Text>
-                              <Text fontWeight="semibold">
-                                {formatCurrency(item.quantity * (Number(item.unitPrice) || 0))}
-                              </Text>
-                            </Flex>
-                          </VStack>
-                        </CardBody>
-                      </Card>
-                    ))}
-                    <Button 
-                      variant="outline" 
-                      leftIcon={<MdAdd />} 
-                      onClick={addLineItem} 
-                      alignSelf="flex-start"
-                      size={buttonSize}
-                    >
-                      Add Line Item
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </Stack>
-          </GridItem>
-        </Grid>
-
-        {/* Active Work Orders Section */}
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardHeader>
-            <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-              <HStack spacing={3}>
-                <Icon as={MdAssignment} color={accentColor} boxSize={6} />
-                <Text fontSize="xl" fontWeight="semibold">Active Work Orders</Text>
-              </HStack>
-              <Badge colorScheme="blue" variant="subtle" fontSize="sm">
-                {workOrderList.length} active
-              </Badge>
-            </Flex>
-            <Text fontSize="sm" color={mutedText} mt={2}>
-              Manage active work orders. Mark jobs as complete once delivered to customers.
+      <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={6} mb={6}>
+        <Stack spacing={6}>
+          <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6}>
+            <Text fontSize="lg" fontWeight="semibold" mb={4}>
+              Customer Details
             </Text>
-          </CardHeader>
-          <CardBody pt={0}>
-            {/* Loading State */}
-            {isLoading && (
-              <Box overflowX="auto">
-                <Table variant={tableVariant}>
-                  <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
-                    <Tr>
-                      <Th>Code</Th>
-                      <Th>Status</Th>
-                      <Th>Customer</Th>
-                      <Th>Vehicle</Th>
-                      <Th>Arrival</Th>
-                      <Th isNumeric>Total</Th>
-                      <Th>Assigned To</Th>
-                      <Th textAlign="right">Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <WorkOrderRowSkeleton key={index} />
-                    ))}
-                  </Tbody>
-                </Table>
-              </Box>
-            )}
+            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={4}>
+              Provide the customer details once. If the phone number matches an existing customer, this work order will be linked automatically.
+            </Text>
+            {matchedCustomer ? (
+              <Badge colorScheme="green" borderRadius="md" mb={4} w="fit-content">
+                Existing customer detected: {combineName(matchedCustomer.firstName, matchedCustomer.lastName)}
+              </Badge>
+            ) : null}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Full Name</FormLabel>
+                <Input value={customerForm.fullName} onChange={handleCustomerFieldChange('fullName')} placeholder="e.g. Jane Smith" />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Phone</FormLabel>
+                <Input value={customerForm.phone} onChange={handleCustomerFieldChange('phone')} placeholder="Contact number" />
+              </FormControl>
+            </SimpleGrid>
+            <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.500')} mt={6}>
+              Need advanced customer management?{' '}
+              <Link as={RouterLink} to="/customers" color="brand.500">
+                Open the customer directory
+              </Link>
+              .
+            </Text>
+          </Box>
 
-            {/* Error State */}
-            {error && !isLoading && (
-              <Alert status="error" borderRadius="lg">
-                <AlertIcon />
-                <Box>
-                  <Text fontWeight="semibold">Unable to load work orders</Text>
-                  <Text fontSize="sm" mt={1}>
-                    {error instanceof Error ? error.message : 'Please check your connection and try again.'}
+          <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6}>
+            <Text fontSize="lg" fontWeight="semibold" mb={4}>
+              Vehicle Details
+            </Text>
+            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={4}>
+              Enter the vehicle information. A matching VIN will re-use the existing record.
+            </Text>
+            {matchedVehicle ? (
+              <Badge colorScheme="blue" borderRadius="md" mb={4} w="fit-content">
+                Existing vehicle detected: {matchedVehicle.year} {matchedVehicle.make} {matchedVehicle.model}
+              </Badge>
+            ) : null}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>VIN</FormLabel>
+                <Input value={vehicleForm.vin} onChange={handleVehicleFieldChange('vin')} placeholder="Vehicle Identification Number" />
+              </FormControl>
+              <FormControl>
+                <FormLabel>License Plate</FormLabel>
+                <Input value={vehicleForm.licensePlate} onChange={handleVehicleFieldChange('licensePlate')} placeholder="Optional plate number" />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Make</FormLabel>
+                <Input value={vehicleForm.make} onChange={handleVehicleFieldChange('make')} placeholder="Manufacturer" />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Model</FormLabel>
+                <Input value={vehicleForm.model} onChange={handleVehicleFieldChange('model')} placeholder="Model" />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Year</FormLabel>
+                <Input value={vehicleForm.year} onChange={handleVehicleFieldChange('year')} placeholder="Year" />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Color</FormLabel>
+                <Input value={vehicleForm.color} onChange={handleVehicleFieldChange('color')} />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Vehicle Notes</FormLabel>
+                <Textarea value={vehicleForm.notes} onChange={handleVehicleFieldChange('notes')} placeholder="Optional notes (e.g. prior issues)" rows={3} />
+              </FormControl>
+            </SimpleGrid>
+            <Text fontSize="sm" color={useColorModeValue('gray.500', 'gray.500')} mt={6}>
+              Manage the full vehicle roster from the{' '}
+              <Link as={RouterLink} to="/vehicles" color="brand.500">
+                vehicles page
+              </Link>
+              .
+            </Text>
+          </Box>
+        </Stack>
+
+        <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6}>
+          <Text fontSize="lg" fontWeight="semibold" mb={4}>
+            Job Details
+          </Text>
+          <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={4}>
+            Work orders start as active jobs. You can mark them as completed from the table below once the task is finished.
+          </Text>
+          <Stack spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>Description</FormLabel>
+              <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Summary of the work" />
+            </FormControl>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Arrival</FormLabel>
+                <Input type="datetime-local" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Scheduled</FormLabel>
+                <Input type="datetime-local" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} />
+              </FormControl>
+            </SimpleGrid>
+            <FormControl>
+              <FormLabel>Assign Worker</FormLabel>
+              <Select placeholder="Optional" value={workerId} onChange={(event) => setWorkerId(event.target.value)}>
+                {workerOptions.map((worker) => (
+                  <option key={worker.id} value={worker.id}>
+                    {worker.name} ({worker.totalJobs} jobs)
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Internal Notes</FormLabel>
+              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Private notes for the workshop team" rows={3} />
+            </FormControl>
+            <Divider />
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl>
+                <FormLabel>Parking Charge</FormLabel>
+                <NumberInput min={0} value={parkingCharge} onChange={(value) => setParkingCharge(value)} clampValueOnBlur={false}>
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Discount</FormLabel>
+                <NumberInput min={0} value={discount} onChange={(value) => setDiscount(value)} clampValueOnBlur={false}>
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+            </SimpleGrid>
+            <Box borderWidth="1px" borderRadius="lg" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={4} bg={useColorModeValue('gray.50', 'whiteAlpha.100')}>
+              <Text fontWeight="medium" mb={1}>
+                Summary
+              </Text>
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                Labour: {formatCurrency(serviceTotal)} | Parts: {formatCurrency(partsTotal)}
+              </Text>
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                Taxes: {formatCurrency(taxesValue)} | Parking: {formatCurrency(parkingChargeValue)}
+              </Text>
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                Discount: {formatCurrency(discountValue)}
+              </Text>
+              <Text fontSize="lg" fontWeight="bold" color="brand.600">
+                Total: {formatCurrency(grandTotal)}
+              </Text>
+            </Box>
+          </Stack>
+        </Box>
+      </SimpleGrid>
+      <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6} mb={6}>
+        <Text fontSize="lg" fontWeight="semibold" mb={4}>
+          Services & Parts
+        </Text>
+        <VStack align="stretch" spacing={4}>
+          {lineItems.map((item) => (
+            <Box key={item.id} borderWidth="1px" borderRadius="lg" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={4}>
+              <HStack justify="space-between" mb={3}>
+                <Text fontWeight="medium">Line {item.id}</Text>
+                <IconButton
+                  aria-label="Remove"
+                  size="sm"
+                  icon={<MdRemove />}
+                  onClick={() => removeLineItem(item.id)}
+                  isDisabled={lineItems.length === 1}
+                />
+              </HStack>
+              <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
+                <FormControl>
+                  <FormLabel>Type</FormLabel>
+                  <Select value={item.type} onChange={(event) => handleLineItemChange(item.id, 'type', event.target.value as LineItemType)}>
+                    {LINE_ITEM_TYPES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Item</FormLabel>
+                  <Input
+                    list={`line-item-${item.id}`}
+                    value={item.name}
+                    onChange={(event) => handleLineItemChange(item.id, 'name', event.target.value)}
+                    placeholder={item.type === 'SERVICE' ? 'Service name' : 'Part name'}
+                  />
+                  <datalist id={`line-item-${item.id}`}>
+                    {(item.type === 'SERVICE' ? serviceOptions : inventoryOptions).map((option) => (
+                      <option key={option.id} value={option.name} />
+                    ))}
+                  </datalist>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Quantity</FormLabel>
+                  <NumberInput
+                    min={0}
+                    value={item.quantity}
+                    onChange={(_, valueNumber) => {
+                      const safeValue = Number.isFinite(valueNumber) ? Math.max(0, valueNumber) : item.quantity;
+                      handleLineItemChange(item.id, 'quantity', safeValue);
+                    }}
+                  >
+                    <NumberInputField />
+                  </NumberInput>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Unit Price</FormLabel>
+                  <NumberInput
+                    min={0}
+                    precision={2}
+                    value={item.unitPrice}
+                    onChange={(value) => handleLineItemChange(item.id, 'unitPrice', value)}
+                  >
+                    <NumberInputField />
+                  </NumberInput>
+                </FormControl>
+              </SimpleGrid>
+            </Box>
+          ))}
+          <Button variant="outline" leftIcon={<MdAdd />} onClick={addLineItem} alignSelf="flex-start">
+            Add
+          </Button>
+        </VStack>
+      </Box>
+      <Box bg={useColorModeValue('surface.base', '#121212')} borderRadius="xl" borderWidth="1px" borderColor={useColorModeValue('border.subtle', 'whiteAlpha.200')} p={6}>
+        <HStack justify="space-between" mb={4}>
+          <Text fontSize="lg" fontWeight="semibold">
+            Active Work Orders
+          </Text>
+          <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+            Mark jobs complete once they have been delivered to the customer.
+          </Text>
+        </HStack>
+        <Table>
+          <Thead bg={useColorModeValue('gray.50', 'whiteAlpha.100')}>
+            <Tr>
+              <Th>Code</Th>
+              <Th>Status</Th>
+              <Th>Customer</Th>
+              <Th>Vehicle</Th>
+              <Th>Arrival</Th>
+              <Th isNumeric>Total</Th>
+              <Th>Workers</Th>
+              <Th textAlign="right">Actions</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {isLoading ? (
+              <Tr>
+                <Td colSpan={8}>
+                  <Spinner />
+                </Td>
+              </Tr>
+            ) : error ? (
+              <Tr>
+                <Td colSpan={8}>
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    Failed to load work orders
+                  </Alert>
+                </Td>
+              </Tr>
+            ) : workOrderList.length === 0 ? (
+              <Tr>
+                <Td colSpan={8}>
+                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                    No active work orders. Capture one above to get started.
                   </Text>
-                </Box>
-              </Alert>
+                </Td>
+              </Tr>
+            ) : (
+              workOrderList.map((order) => (
+                <Tr key={order.id}>
+                  <Td>{order.code}</Td>
+                  <Td>
+                    <Badge
+                      colorScheme={
+                        order.status === WorkOrderStatus.COMPLETED
+                          ? 'green'
+                          : order.status === WorkOrderStatus.IN_PROGRESS
+                          ? 'blue'
+                          : 'orange'
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </Td>
+                  <Td>{order.customer ? combineName(order.customer.firstName, order.customer.lastName) : 'Unassigned'}</Td>
+                  <Td>
+                    {order.vehicle.year} {order.vehicle.make} {order.vehicle.model}
+                  </Td>
+                  <Td>{new Date(order.arrivalDate ?? order.createdAt).toLocaleString()}</Td>
+                  <Td isNumeric>{formatCurrency(Number(order.totalCost))}</Td>
+                  <Td>
+                    {order.assignments.length === 0
+                      ? '�'
+                      : order.assignments.map((assignment) => assignment.worker.name).join(', ')}
+                  </Td>
+                  <Td>
+                    <HStack justify="flex-end" spacing={2}>
+                      <Tooltip label="Edit work order">
+                        <IconButton aria-label="Edit work order" icon={<FiEdit2 />} size="sm" variant="ghost" onClick={() => openEditDrawer(order)} />
+                      </Tooltip>
+                      <Tooltip label="Mark as completed">
+                        <IconButton
+                          aria-label="Mark work order as completed"
+                          icon={<MdCheckCircle />}
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="green"
+                          onClick={() => handleCompleteWorkOrder(order)}
+                          isDisabled={isCompleting}
+                          isLoading={completingId === order.id}
+                        />
+                      </Tooltip>
+                      <Tooltip label="Generate invoice">
+                        <IconButton
+                          aria-label="Generate invoice"
+                          icon={<MdPrint />}
+                          size="sm"
+                          onClick={() => handleGenerateInvoice(order)}
+                        />
+                      </Tooltip>
+                      <Tooltip label="Delete work order">
+                        <IconButton
+                          aria-label="Delete work order"
+                          icon={<FiTrash2 />}
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={() => openDeleteDialog(order)}
+                          isDisabled={isDeleting}
+                        />
+                      </Tooltip>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))
             )}
-
-            {/* Empty State */}
-            {!isLoading && !error && workOrderList.length === 0 && (
-              <Box textAlign="center" py={12}>
-                <Icon as={MdAssignment} boxSize={12} color={mutedText} mb={4} />
-                <Text fontSize="lg" fontWeight="semibold" mb={2}>
-                  No active work orders
-                </Text>
-                <Text color={mutedText} mb={6}>
-                  Create your first work order using the form above to get started
-                </Text>
-                <Button 
-                  colorScheme="brand" 
-                  onClick={handleSubmit}
-                  leftIcon={<MdAdd />}
-                  isLoading={isCreating}
-                >
-                  Create First Work Order
-                </Button>
-              </Box>
-            )}
-
-            {/* Work Orders List */}
-            {!isLoading && !error && workOrderList.length > 0 && (
-              <>
-                {/* Mobile Card View */}
-                {showCompactTable ? (
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                    {workOrderList.map((order) => (
-                      <WorkOrderCard key={order.id} order={order} />
-                    ))}
-                  </SimpleGrid>
-                ) : (
-                  /* Desktop Table View */
-                  <Table variant={tableVariant}>
-                    <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
-                      <Tr>
-                        <Th>Code</Th>
-                        <Th>Status</Th>
-                        <Th>Customer</Th>
-                        <Th>Vehicle</Th>
-                        <Th>Arrival</Th>
-                        <Th isNumeric>Total</Th>
-                        <Th>Assigned To</Th>
-                        <Th textAlign="right">Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {workOrderList.map((order) => (
-                        <Tr 
-                          key={order.id}
-                          _hover={{ bg: hoverBg }}
-                          transition="background 0.2s"
-                          cursor="pointer"
-                          onClick={() => openEditDrawer(order)}
-                        >
-                          <Td fontWeight="medium" color={accentColor}>
-                            {order.code}
-                          </Td>
-                          <Td>
-                            <Badge
-                              colorScheme={
-                                order.status === WorkOrderStatus.COMPLETED
-                                  ? 'green'
-                                  : order.status === WorkOrderStatus.IN_PROGRESS
-                                  ? 'blue'
-                                  : 'orange'
-                              }
-                              variant="subtle"
-                              fontSize="sm"
-                            >
-                              {order.status}
-                            </Badge>
-                          </Td>
-                          <Td>
-                            <HStack spacing={2}>
-                              <Avatar 
-                                size="xs" 
-                                name={order.customer ? combineName(order.customer.firstName, order.customer.lastName) : 'Unknown'}
-                                bg="brand.500"
-                              />
-                              <Text>
-                                {order.customer ? combineName(order.customer.firstName, order.customer.lastName) : 'Unassigned'}
-                              </Text>
-                            </HStack>
-                          </Td>
-                          <Td>
-                            <Text fontWeight="medium">
-                              {order.vehicle.year} {order.vehicle.make} {order.vehicle.model}
-                            </Text>
-                            <Text fontSize="sm" color={mutedText}>
-                              {order.vehicle.licensePlate || 'No plate'}
-                            </Text>
-                          </Td>
-                          <Td>
-                            {new Date(order.arrivalDate ?? order.createdAt).toLocaleDateString()}
-                            <Text fontSize="sm" color={mutedText}>
-                              {new Date(order.arrivalDate ?? order.createdAt).toLocaleTimeString()}
-                            </Text>
-                          </Td>
-                          <Td isNumeric fontWeight="bold">
-                            {formatCurrency(Number(order.totalCost))}
-                          </Td>
-                          <Td>
-                            {order.assignments.length === 0 ? (
-                              <Text fontSize="sm" color={mutedText}>Unassigned</Text>
-                            ) : (
-                              <Wrap spacing={1}>
-                                {order.assignments.map((assignment) => (
-                                  <WrapItem key={assignment.id}>
-                                    <Badge colorScheme="blue" variant="subtle" fontSize="xs">
-                                      {assignment.worker.name}
-                                    </Badge>
-                                  </WrapItem>
-                                ))}
-                              </Wrap>
-                            )}
-                          </Td>
-                          <Td>
-                            <HStack justify="flex-end" spacing={1}>
-                              <Tooltip label="Edit work order">
-                                <IconButton
-                                  aria-label="Edit work order"
-                                  icon={<MdEdit />}
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditDrawer(order);
-                                  }}
-                                />
-                              </Tooltip>
-                              <Tooltip label="Mark as completed">
-                                <IconButton
-                                  aria-label="Mark work order as completed"
-                                  icon={<MdCheckCircle />}
-                                  size="sm"
-                                  variant="ghost"
-                                  colorScheme="green"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCompleteWorkOrder(order);
-                                  }}
-                                  isDisabled={isCompleting}
-                                  isLoading={completingId === order.id}
-                                />
-                              </Tooltip>
-                              <Tooltip label="Generate invoice">
-                                <IconButton
-                                  aria-label="Generate invoice"
-                                  icon={<MdPrint />}
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleGenerateInvoice(order);
-                                  }}
-                                />
-                              </Tooltip>
-                              <Tooltip label="Delete work order">
-                                <IconButton
-                                  aria-label="Delete work order"
-                                  icon={<MdDelete />}
-                                  size="sm"
-                                  variant="ghost"
-                                  colorScheme="red"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openDeleteDialog(order);
-                                  }}
-                                  isDisabled={isDeleting}
-                                />
-                              </Tooltip>
-                            </HStack>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
-                )}
-              </>
-            )}
-          </CardBody>
-        </Card>
-      </Stack>
-
-      {/* Edit Drawer */}
-      <Drawer 
-        isOpen={editDisclosure.isOpen} 
-        placement="right" 
-        onClose={closeEditDrawer} 
-        size={drawerSize}
-      >
+          </Tbody>
+        </Table>
+      </Box>
+      <Drawer isOpen={editDisclosure.isOpen} placement="right" onClose={closeEditDrawer} size="md">
         <DrawerOverlay />
         <DrawerContent>
           <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px">
-            <HStack spacing={3}>
-              <Icon as={MdEdit} color={accentColor} />
-              <Text>Edit Work Order</Text>
-            </HStack>
-            {editingOrder && (
-              <Text fontSize="sm" color={mutedText} mt={1} fontWeight="normal">
-                {editingOrder.code} • {editingOrder.vehicle.year} {editingOrder.vehicle.make} {editingOrder.vehicle.model}
-              </Text>
-            )}
-          </DrawerHeader>
+          <DrawerHeader>Edit Work Order</DrawerHeader>
           <DrawerBody>
             {editingOrder ? (
               <VStack spacing={4} align="stretch">
                 <FormControl isRequired>
                   <FormLabel>Description</FormLabel>
-                  <Input 
-                    value={editFormState.description} 
-                    onChange={(event) => handleEditFieldChange('description')(event.target.value)} 
-                  />
+                  <Input value={editFormState.description} onChange={(event) => handleEditFieldChange('description')(event.target.value)} />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Status</FormLabel>
-                  <Select 
-                    value={editFormState.status} 
-                    onChange={(event) => handleEditFieldChange('status')(event.target.value)}
-                  >
+                  <Select value={editFormState.status} onChange={(event) => handleEditFieldChange('status')(event.target.value)}>
                     {Object.values(WorkOrderStatus).map((status) => (
                       <option key={status} value={status}>
                         {status}
@@ -1670,7 +990,7 @@ export const WorkOrdersPage = () => {
                   </Select>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Arrival Date & Time</FormLabel>
+                  <FormLabel>Arrival</FormLabel>
                   <Input
                     type="datetime-local"
                     value={editFormState.arrivalDate}
@@ -1679,7 +999,7 @@ export const WorkOrdersPage = () => {
                 </FormControl>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl>
-                    <FormLabel>Scheduled Date & Time</FormLabel>
+                    <FormLabel>Scheduled</FormLabel>
                     <Input
                       type="datetime-local"
                       value={editFormState.scheduledDate}
@@ -1687,7 +1007,7 @@ export const WorkOrdersPage = () => {
                     />
                   </FormControl>
                   <FormControl>
-                    <FormLabel>Completed Date & Time</FormLabel>
+                    <FormLabel>Completed</FormLabel>
                     <Input
                       type="datetime-local"
                       value={editFormState.completedDate}
@@ -1698,21 +1018,13 @@ export const WorkOrdersPage = () => {
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl>
                     <FormLabel>Labour Cost</FormLabel>
-                    <NumberInput 
-                      min={0} 
-                      value={editFormState.laborCost} 
-                      onChange={(value) => handleEditFieldChange('laborCost')(value)}
-                    >
+                    <NumberInput min={0} value={editFormState.laborCost} onChange={(value) => handleEditFieldChange('laborCost')(value)}>
                       <NumberInputField />
                     </NumberInput>
                   </FormControl>
                   <FormControl>
                     <FormLabel>Parts Cost</FormLabel>
-                    <NumberInput 
-                      min={0} 
-                      value={editFormState.partsCost} 
-                      onChange={(value) => handleEditFieldChange('partsCost')(value)}
-                    >
+                    <NumberInput min={0} value={editFormState.partsCost} onChange={(value) => handleEditFieldChange('partsCost')(value)}>
                       <NumberInputField />
                     </NumberInput>
                   </FormControl>
@@ -1720,100 +1032,57 @@ export const WorkOrdersPage = () => {
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl>
                     <FormLabel>Parking Charge</FormLabel>
-                    <NumberInput 
-                      min={0} 
-                      value={editFormState.parkingCharge} 
-                      onChange={(value) => handleEditFieldChange('parkingCharge')(value)}
-                    >
+                    <NumberInput min={0} value={editFormState.parkingCharge} onChange={(value) => handleEditFieldChange('parkingCharge')(value)}>
                       <NumberInputField />
                     </NumberInput>
                   </FormControl>
                   <FormControl>
                     <FormLabel>Discount</FormLabel>
-                    <NumberInput 
-                      min={0} 
-                      value={editFormState.discount} 
-                      onChange={(value) => handleEditFieldChange('discount')(value)}
-                    >
+                    <NumberInput min={0} value={editFormState.discount} onChange={(value) => handleEditFieldChange('discount')(value)}>
                       <NumberInputField />
                     </NumberInput>
                   </FormControl>
                 </SimpleGrid>
                 <FormControl>
                   <FormLabel>Notes</FormLabel>
-                  <Textarea 
-                    value={editFormState.notes} 
-                    onChange={(event) => handleEditFieldChange('notes')(event.target.value)} 
-                    rows={4}
-                  />
+                  <Textarea value={editFormState.notes} onChange={(event) => handleEditFieldChange('notes')(event.target.value)} />
                 </FormControl>
               </VStack>
             ) : (
-              <Text color={mutedText}>Select a work order to update.</Text>
+              <Text color={useColorModeValue('gray.600', 'gray.400')}>Select a work order to update.</Text>
             )}
           </DrawerBody>
-          <DrawerFooter borderTopWidth="1px">
-            <Button variant="outline" mr={3} onClick={closeEditDrawer}>
+          <DrawerFooter>
+            <Button variant="ghost" mr={3} onClick={closeEditDrawer}>
               Cancel
             </Button>
-            <Button 
-              colorScheme="brand" 
-              onClick={handleSubmitEdit} 
-              isLoading={isUpdating} 
-              isDisabled={!editingOrder}
-            >
-              Save Changes
+            <Button colorScheme="brand" onClick={handleSubmitEdit} isLoading={isUpdating} isDisabled={!editingOrder}>
+              Save changes
             </Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         isOpen={deleteDisclosure.isOpen}
         onClose={closeDeleteDialog}
         leastDestructiveRef={cancelDeleteRef}
-        isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent mx={4}>
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              <HStack spacing={2}>
-                <Icon as={MdWarning} color="red.500" />
-                <Text>Delete Work Order</Text>
-              </HStack>
+              Delete Work Order
             </AlertDialogHeader>
             <AlertDialogBody>
-              {workOrderPendingDelete && (
-                <VStack align="stretch" spacing={3}>
-                  <Text>
-                    Are you sure you want to delete work order <strong>{workOrderPendingDelete.code}</strong>?
-                  </Text>
-                  <Text color={mutedText}>
-                    This will permanently remove the work order record and all associated assignments. 
-                    This action cannot be undone.
-                  </Text>
-                  <Alert status="warning" size="sm" borderRadius="md">
-                    <AlertIcon />
-                    <Text fontSize="sm">
-                      This work order has {workOrderPendingDelete.assignments.length} assignment(s) and {workOrderPendingDelete.lineItems?.length || 0} line item(s) that will also be removed.
-                    </Text>
-                  </Alert>
-                </VStack>
-              )}
+              {workOrderPendingDelete
+                ? `Delete ${workOrderPendingDelete.code}? This will remove the record and related assignments.`
+                : 'Are you sure you want to delete this work order?'}
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog} size="sm">
+              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog}>
                 Cancel
               </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={handleDeleteWorkOrder} 
-                ml={3} 
-                isLoading={isDeleting}
-                size="sm"
-              >
-                Delete Work Order
+              <Button colorScheme="red" onClick={handleDeleteWorkOrder} ml={3} isLoading={isDeleting}>
+                Delete
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

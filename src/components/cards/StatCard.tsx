@@ -7,26 +7,31 @@ import {
   Icon, 
   HStack, 
   VStack, 
-  useColorModeValue,
-  useBreakpointValue,
   Tooltip,
+  useColorModeValue,
   Badge,
-  BoxProps
+  CircularProgress,
+  CircularProgressLabel
 } from '@chakra-ui/react';
-import { IconType } from 'react-icons';
+import { FiHelpCircle, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 
-type StatCardProps = BoxProps & {
+type StatCardProps = {
   label: string;
   value: ReactNode;
   helperText?: string;
-  icon?: IconType;
-  trend?: 'up' | 'down' | 'neutral';
-  trendValue?: string;
-  colorScheme?: 'green' | 'red' | 'blue' | 'orange' | 'purple' | 'gray' | 'brand';
-  size?: 'sm' | 'md' | 'lg';
+  icon?: React.ElementType;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+    label?: string;
+  };
+  colorScheme?: 'brand' | 'green' | 'red' | 'orange' | 'blue' | 'purple' | 'gray';
   isLoading?: boolean;
-  isCurrency?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'outline' | 'subtle';
   onClick?: () => void;
+  progressValue?: number;
+  showProgress?: boolean;
 };
 
 export const StatCard = ({ 
@@ -35,239 +40,191 @@ export const StatCard = ({
   helperText, 
   icon,
   trend,
-  trendValue,
   colorScheme = 'brand',
-  size = 'md',
   isLoading = false,
-  isCurrency = false,
+  size = 'md',
+  variant = 'default',
   onClick,
-  ...rest 
+  progressValue,
+  showProgress = false
 }: StatCardProps) => {
-  // Responsive values
-  const headingSize = useBreakpointValue({
-    base: size === 'lg' ? 'lg' : 'md',
-    md: size === 'lg' ? 'xl' : size === 'sm' ? 'md' : 'lg'
-  });
-
-  const paddingSize = useBreakpointValue({
-    base: size === 'lg' ? 4 : 3,
-    md: size === 'lg' ? 6 : size === 'sm' ? 4 : 5
-  });
-
-  // Theme colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const labelColor = useColorModeValue('gray.600', 'gray.400');
-  const valueColor = useColorModeValue('gray.900', 'white');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  // Color values based on color mode and scheme
+  const bgColor = useColorModeValue(
+    variant === 'subtle' ? 'gray.50' : 'white',
+    variant === 'subtle' ? 'gray.700' : 'gray.800'
+  );
   
-  // Trend colors
-  const trendUpColor = useColorModeValue('green.600', 'green.300');
-  const trendDownColor = useColorModeValue('red.600', 'red.300');
-  const trendNeutralColor = useColorModeValue('gray.500', 'gray.400');
-
-  // Color scheme mappings
-  const colorSchemes = {
-    green: { color: useColorModeValue('green.600', 'green.300'), bg: useColorModeValue('green.50', 'green.900') },
-    red: { color: useColorModeValue('red.600', 'red.300'), bg: useColorModeValue('red.50', 'red.900') },
-    blue: { color: useColorModeValue('blue.600', 'blue.300'), bg: useColorModeValue('blue.50', 'blue.900') },
-    orange: { color: useColorModeValue('orange.600', 'orange.300'), bg: useColorModeValue('orange.50', 'orange.900') },
-    purple: { color: useColorModeValue('purple.600', 'purple.300'), bg: useColorModeValue('purple.50', 'purple.900') },
-    gray: { color: useColorModeValue('gray.600', 'gray.300'), bg: useColorModeValue('gray.50', 'gray.700') },
-    brand: { color: useColorModeValue('brand.600', 'brand.300'), bg: useColorModeValue('brand.50', 'brand.900') }
-  };
-
-  const trendConfig = {
-    up: { 
-      color: trendUpColor, 
-      icon: '↗' 
-    },
-    down: { 
-      color: trendDownColor, 
-      icon: '↘' 
-    },
-    neutral: { 
-      color: trendNeutralColor, 
-      icon: '→' 
-    }
-  };
-
-  const currentTrend = trend ? trendConfig[trend] : null;
-  const currentColorScheme = colorSchemes[colorScheme];
-
-  // Sizing configurations
+  const borderColor = useColorModeValue(
+    variant === 'outline' ? 'gray.200' : 'transparent',
+    variant === 'outline' ? 'gray.600' : 'transparent'
+  );
+  
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const shadow = variant === 'default' ? 'sm' : 'none';
+  
+  // Size variants
   const sizeConfig = {
-    sm: {
-      iconSize: 4,
-      labelSize: 'xs',
-      helperSize: 'xs',
-      spacing: 1
-    },
-    md: {
-      iconSize: 5,
-      labelSize: 'sm',
-      helperSize: 'sm',
-      spacing: 2
-    },
-    lg: {
-      iconSize: 6,
-      labelSize: 'md',
-      helperSize: 'sm',
-      spacing: 3
-    }
+    sm: { padding: 4, headingSize: 'md', gap: 2 },
+    md: { padding: 6, headingSize: 'lg', gap: 2 },
+    lg: { padding: 8, headingSize: 'xl', gap: 3 }
   };
 
-  const { iconSize, labelSize, helperSize, spacing } = sizeConfig[size];
+  const { padding, headingSize, gap } = sizeConfig[size];
+
+  // Color scheme configuration
+  const colorConfig = {
+    brand: { color: 'blue.500', light: 'brand.50', dark: 'brand.100' },
+    green: { color: 'blue.500', light: 'green.50', dark: 'green.100' },
+    red: { color: 'blue.500', light: 'red.50', dark: 'red.100' },
+    orange: { color: 'blue.500', light: 'orange.50', dark: 'orange.100' },
+    blue: { color: 'blue.500', light: 'blue.50', dark: 'blue.100' },
+    purple: { color: 'purple.500', light: 'purple.50', dark: 'purple.100' },
+    gray: { color: 'gray.500', light: 'gray.50', dark: 'gray.100' }
+  };
+
+  const colors = colorConfig[colorScheme];
+
+  if (isLoading) {
+    return (
+      <Box
+        bg={bgColor}
+        borderRadius="xl"
+        boxShadow={shadow}
+        p={padding}
+        borderWidth={variant === 'outline' ? '1px' : '0'}
+        borderColor={borderColor}
+        opacity={0.6}
+      >
+        <Flex direction="column" gap={gap}>
+          <Flex align="center" gap={2}>
+            <Box w="60%" h="16px" bg="gray.200" borderRadius="md" />
+          </Flex>
+          <Box w="80%" h="24px" bg="gray.300" borderRadius="md" />
+        </Flex>
+      </Box>
+    );
+  }
 
   return (
-    <Tooltip label={helperText} hasArrow placement="top" isDisabled={!helperText || Boolean(onClick)}>
-      <Box
-        bg={cardBg}
-        borderRadius="xl"
-        boxShadow="sm"
-        borderWidth="1px"
-        borderColor={borderColor}
-        p={paddingSize}
-        transition="all 0.2s"
-        _hover={onClick ? { 
-          bg: hoverBg, 
-          transform: 'translateY(-2px)',
-          boxShadow: 'md',
-          cursor: 'pointer'
-        } : {}}
-        position="relative"
-        overflow="hidden"
-        onClick={onClick}
-        {...rest}
-      >
-        {/* Color accent bar */}
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          w="4px"
-          h="full"
-          bg={currentColorScheme.color}
-        />
+    <Box
+      bg={bgColor}
+      borderRadius="xl"
+      boxShadow={shadow}
+      p={padding}
+      borderWidth={variant === 'outline' ? '1px' : '0'}
+      borderColor={borderColor}
+      transition="all 0.2s"
+      _hover={onClick ? { 
+        shadow: 'md', 
+        transform: 'translateY(-2px)',
+        bg: hoverBg,
+        cursor: 'pointer'
+      } : {}}
+      onClick={onClick}
+      position="relative"
+      overflow="hidden"
+    >
+      {/* Progress indicator */}
+      {showProgress && progressValue !== undefined && (
+        <Box position="absolute" top={3} right={3}>
+          <CircularProgress 
+            value={progressValue} 
+            size="32px" 
+            thickness="8px"
+            color={colors.color}
+          >
+            <CircularProgressLabel fontSize="2xs">
+              {progressValue}%
+            </CircularProgressLabel>
+          </CircularProgress>
+        </Box>
+      )}
 
-        <VStack align="stretch" spacing={spacing}>
-          {/* Header with label and icon */}
-          <Flex justify="space-between" align="flex-start" gap={2}>
-            <Text
-              fontSize={labelSize}
-              color={labelColor}
+      <Flex direction="column" gap={gap}>
+        {/* Header with label and icon */}
+        <Flex justify="space-between" align="flex-start" gap={2}>
+          <HStack spacing={2} align="center" flex={1}>
+            {icon && (
+              <Icon 
+                as={icon} 
+                color={colors.color} 
+                boxSize={size === 'lg' ? 5 : 4}
+                mt={0.5}
+              />
+            )}
+            <Text 
+              fontSize={size === 'sm' ? 'xs' : 'sm'}
+              color="gray.500"
               textTransform="uppercase"
               letterSpacing="wider"
               fontWeight="medium"
               noOfLines={1}
-              flex={1}
             >
               {label}
             </Text>
-            
-            {icon && (
-              <Icon 
-                as={icon} 
-                boxSize={iconSize} 
-                color={currentColorScheme.color}
-                flexShrink={0}
-              />
-            )}
-          </Flex>
-
-          {/* Value and trend */}
-          <Flex align="flex-end" justify="space-between" gap={2}>
-            <HStack align="flex-end" spacing={2} flex={1}>
-              <Heading 
-                size={headingSize} 
-                color={valueColor}
-                noOfLines={1}
-                fontWeight="bold"
-              >
-                {isLoading ? '...' : value}
-              </Heading>
-              
-              {trend && trendValue && (
-                <Badge
-                  colorScheme={trend === 'up' ? 'green' : trend === 'down' ? 'red' : 'gray'}
-                  variant="subtle"
-                  fontSize={helperSize}
-                  fontWeight="medium"
-                >
-                  {currentTrend?.icon} {trendValue}
-                </Badge>
-              )}
-            </HStack>
-
-            {/* Standalone trend indicator */}
-            {trend && !trendValue && (
-              <Text 
-                fontSize={helperSize}
-                color={currentTrend?.color}
-                fontWeight="bold"
-                flexShrink={0}
-              >
-                {currentTrend?.icon}
-              </Text>
-            )}
-          </Flex>
-
-          {/* Helper text */}
-          {helperText && (
-            <Text 
-              fontSize={helperSize} 
-              color={labelColor}
-              noOfLines={2}
-              lineHeight="short"
+          </HStack>
+          
+          {/* Trend indicator */}
+          {trend && (
+            <Badge 
+              colorScheme={trend.isPositive ? 'green' : 'red'}
+              variant="subtle"
+              fontSize="xs"
+              display="flex"
+              alignItems="center"
+              gap={1}
             >
-              {helperText}
-            </Text>
+              <Icon 
+                as={trend.isPositive ? FiTrendingUp : FiTrendingDown} 
+                boxSize={3} 
+              />
+              {trend.value}%
+            </Badge>
+          )}
+        </Flex>
+
+        {/* Value and helper text */}
+        <VStack align="flex-start" spacing={1}>
+          <Heading 
+            size={headingSize}
+            color={useColorModeValue('gray.900', 'white')}
+            fontWeight="bold"
+            noOfLines={1}
+          >
+            {value}
+          </Heading>
+          
+          {helperText && (
+            <HStack spacing={1} align="center">
+              <Text 
+                fontSize={size === 'sm' ? 'xs' : 'sm'}
+                color="gray.500"
+                noOfLines={1}
+              >
+                {helperText}
+              </Text>
+              <Tooltip label={helperText} placement="top">
+                <Box>
+                  <Icon as={FiHelpCircle} color="gray.400" boxSize={3} />
+                </Box>
+              </Tooltip>
+            </HStack>
           )}
         </VStack>
+      </Flex>
 
-        {/* Loading shimmer effect */}
-        {isLoading && (
-          <Box
-            position="absolute"
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            bg="linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)"
-            animation="shimmer 1.5s infinite"
-          />
-        )}
-      </Box>
-    </Tooltip>
+      {/* Decorative accent */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        w="4px"
+        h="full"
+        bg={colors.color}
+        opacity={0.8}
+        borderTopLeftRadius="xl"
+        borderBottomLeftRadius="xl"
+      />
+    </Box>
   );
 };
-
-// Compact variant for tighter spaces
-export const CompactStatCard = (props: StatCardProps) => (
-  <StatCard size="sm" {...props} />
-);
-
-// Highlight variant for important metrics
-export const HighlightStatCard = (props: StatCardProps) => (
-  <StatCard 
-    size="lg" 
-    bg={useColorModeValue('brand.50', 'brand.900')}
-    borderColor={useColorModeValue('brand.200', 'brand.700')}
-    {...props} 
-  />
-);
-
-// Add CSS for shimmer animation
-const shimmerStyles = `
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-`;
-
-// Inject styles (you might want to do this in your global CSS instead)
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.innerText = shimmerStyles;
-  document.head.appendChild(styleSheet);
-}

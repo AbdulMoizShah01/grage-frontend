@@ -19,9 +19,7 @@ export class ApiError extends Error {
   }
 }
 
-// In browsers, always use same-origin '/api' so dev proxy (Vite) and prod rewrite (Vercel) handle CORS
-const isBrowser = typeof window !== 'undefined';
-const baseUrl = isBrowser ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
+const baseUrl = import.meta.env.VITE_API_URL ?? '/api';
 
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,

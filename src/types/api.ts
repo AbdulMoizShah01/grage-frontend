@@ -153,6 +153,7 @@ export type DashboardSummary = {
     netEarned: number;
     netExpense: number;
     netProfit: number;
+    spendings: number;
   };
   recentCompletedWorkOrders: Array<{
     id: number;
@@ -204,6 +205,7 @@ export type InsightsSummary = {
   netProfit: number;
   vehicleCount: number;
   partsExpense: number;
+  spendingsTotal: number;
   servicesSold: number;
   partsSold: number;
   workOrdersByStatus: Array<{
@@ -215,4 +217,23 @@ export type InsightsSummary = {
     revenue: number;
     expenses: number;
   }>;
+};
+
+export type SpendingCategory =
+  | 'PREMISES_RENT'
+  | 'WATER'
+  | 'ELECTRICITY'
+  | 'LOGISTICS'
+  | 'MAINTENANCE'
+  | 'PROCUREMENT'
+  | 'MISCELLANEOUS';
+
+export type Spending = {
+  id: number;
+  category: SpendingCategory;
+  amount: string;
+  description?: string | null;
+  incurredAt: string;
+  createdAt: string;
+  updatedAt: string;
 };

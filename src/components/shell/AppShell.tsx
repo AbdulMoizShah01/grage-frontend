@@ -1,11 +1,7 @@
 import { ReactNode } from 'react';
-import { 
-  Box, 
-  useColorModeValue, 
-  useBreakpointValue,
-  BoxProps
-} from '@chakra-ui/react';
+import { Box, Flex, useColorModeValue } from '@chakra-ui/react';
 
+import { Sidebar } from '../layout/Sidebar';
 import { TopBar } from '../layout/TopBar';
 
 type AppShellProps = {
@@ -13,107 +9,21 @@ type AppShellProps = {
   children: ReactNode;
   actions?: ReactNode;
   inventoryAlertsCount?: number;
-  breadcrumbs?: Array<{ label: string; to?: string }>;
-  maxWidth?: string;
-  fullWidth?: boolean;
-  containerProps?: BoxProps;
-  mainPadding?: any;
 };
 
-export const AppShell = ({ 
-  title, 
-  children, 
-  actions, 
-  inventoryAlertsCount, 
-  breadcrumbs,
-  maxWidth = '100%',
-  fullWidth = false,
-  containerProps,
-  mainPadding: mainPaddingProp
-}: AppShellProps) => {
-  // Responsive values
-  const mainPadding = mainPaddingProp ?? useBreakpointValue({ base: 4, md: 6, lg: 8 });
-  
-  // Theme colors
-  const mainBackground = useColorModeValue('white', 'gray.800');
+export const AppShell = ({ title, children, actions, inventoryAlertsCount }: AppShellProps) => {
+  const appBackground = useColorModeValue('surface.muted', 'surface.muted');
+  const mainBackground = useColorModeValue('surface.muted', '#060606');
 
   return (
-    <>
-      <TopBar 
-        title={title} 
-        actions={actions}
-        breadcrumbs={breadcrumbs}
-        notificationCount={inventoryAlertsCount}
-      />
-      
-      <Box 
-        as="main" 
-        flex="1"
-        px={mainPadding}
-        py={mainPadding}
-        bg={mainBackground}
-        position="relative"
-        zIndex={0}
-        overflow="hidden"
-        {...containerProps}
-      >
-        {/* Content Container with optional max width */}
-        <Box
-          maxW={fullWidth ? '100%' : maxWidth}
-          mx={fullWidth ? 0 : 'auto'}
-          w="100%"
-          h="100%"
-          position="relative"
-        >
+    <Flex minH="100vh" bg={appBackground} color="text.primary" transition="background-color 0.2s ease">
+      <Sidebar inventoryAlertsCount={inventoryAlertsCount} />
+      <Box flex="1" display="flex" flexDirection="column">
+        <TopBar title={title} actions={actions} />
+        <Box as="main" px={6} py={6} flex="1" bg={mainBackground}>
           {children}
         </Box>
       </Box>
-    </>
+    </Flex>
   );
 };
-
-// Variant for full-width layouts (like dashboards)
-export const DashboardShell = (props: AppShellProps) => (
-  <AppShell 
-    fullWidth={true}
-    maxWidth="100%"
-    containerProps={{
-      px: 0,
-      py: 0
-    }}
-    {...props} 
-  />
-);
-
-// Variant for form-heavy pages with centered content
-export const FormShell = (props: AppShellProps) => (
-  <AppShell 
-    maxWidth="4xl"
-    containerProps={{
-      display: 'flex',
-      flexDirection: 'column'
-    }}
-    {...props} 
-  />
-);
-
-// Variant for reading/content pages
-export const ContentShell = (props: AppShellProps) => (
-  <AppShell 
-    maxWidth="6xl"
-    containerProps={{
-      display: 'flex',
-      flexDirection: 'column'
-    }}
-    {...props} 
-  />
-);
-
-// Compact variant for settings and nested pages
-export const CompactShell = (props: AppShellProps) => (
-  <AppShell 
-    maxWidth="6xl"
-    mainPadding={{ base: 4, md: 6 }}
-    {...props} 
-  />
-);

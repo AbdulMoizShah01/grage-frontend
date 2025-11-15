@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://garage-backend-production-ee9a.up.railway.app',
+        target: 'https://garage-backend-production-ee79.up.railway.app/api',
         changeOrigin: true
       }
     }

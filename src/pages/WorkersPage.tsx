@@ -10,9 +10,6 @@ import {
   AlertDialogOverlay,
   Box,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Divider,
   Drawer,
   DrawerBody,
@@ -21,22 +18,11 @@ import {
   DrawerHeader,
   DrawerOverlay,
   Flex,
-  FormControl,
-  FormLabel,
-  Grid,
-  GridItem,
   HStack,
-  Icon,
   IconButton,
   Input,
   InputGroup,
   InputLeftElement,
-  NumberInput,
-  NumberInputField,
-  Select,
-  SimpleGrid,
-  Skeleton,
-  SkeletonText,
   Spinner,
   Stack,
   Table,
@@ -49,25 +35,23 @@ import {
   Tr,
   Tag,
   TagLabel,
+  SimpleGrid,
+  NumberInput,
+  NumberInputField,
+  Select,
   useDisclosure,
   useToast,
   useColorModeValue,
-  useBreakpointValue,
-  VStack,
-  Badge,
-  Wrap,
-  WrapItem,
-  Avatar,
-  Progress
+  FormControl,
+  FormLabel,
+  VStack
 } from '@chakra-ui/react';
-import { FiEdit2, FiInfo, FiSearch, FiTrash2, FiUser, FiPhone, FiDollarSign, FiTrendingUp, FiPackage } from 'react-icons/fi';
-import { MdAdd, MdWork, MdWarning, MdPayment, MdAttachMoney, MdSchedule } from 'react-icons/md';
+import { FiEdit2, FiInfo, FiSearch, FiTrash2 } from 'react-icons/fi';
 
 import { AppShell } from '../components/shell/AppShell';
-import { FormModal } from '../components/forms/FormModal';
-import { StatCard } from '../components/cards/StatCard';
 import { useWorkers } from '../hooks/useWorkers';
 import { useDashboardSummary } from '../hooks/useDashboardSummary';
+import { FormModal } from '../components/forms/FormModal';
 import { ApiError } from '../api/client';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { Worker, WorkerDetail } from '../types/api';
@@ -137,40 +121,8 @@ const formatDateTime = (value: string) => new Date(value).toLocaleString();
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback;
 
-// Skeleton loader for worker rows
-const WorkerRowSkeleton = () => (
-  <Tr>
-    <Td><Skeleton height="20px" /></Td>
-    <Td><Skeleton height="20px" width="100px" /></Td>
-    <Td><Skeleton height="20px" width="60px" /></Td>
-    <Td><Skeleton height="20px" width="60px" /></Td>
-    <Td><Skeleton height="20px" width="80px" /></Td>
-    <Td><Skeleton height="20px" width="60px" /></Td>
-    <Td><Skeleton height="20px" width="100px" /></Td>
-  </Tr>
-);
-
 export const WorkersPage = () => {
   const toast = useToast();
-
-  // Responsive values
-  const tableVariant = useBreakpointValue({ base: 'simple', md: 'striped' });
-  const showMobileCards = useBreakpointValue({ base: true, md: false });
-  const buttonSize = useBreakpointValue({ base: 'sm', md: 'md' });
-  const modalSize = useBreakpointValue({ base: 'full', md: 'xl', lg: '2xl' });
-  const drawerSize = useBreakpointValue({ base: 'full', md: 'md', lg: 'lg' });
-  const gridColumns = useBreakpointValue({ base: 2, md: 4 });
-
-  // Theme colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const mutedText = useColorModeValue('gray.600', 'gray.400');
-  const headerBg = useColorModeValue('gray.50', 'gray.700');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
-  const accentColor = useColorModeValue('brand.500', 'brand.300');
-  const warningColor = useColorModeValue('orange.500', 'orange.300');
-  const successColor = useColorModeValue('green.500', 'green.300');
-  const dangerColor = useColorModeValue('red.500', 'red.300');
 
   const createDisclosure = useDisclosure();
   const editDisclosure = useDisclosure();
@@ -201,6 +153,12 @@ export const WorkersPage = () => {
   } = useWorkers();
 
   const { data: summary } = useDashboardSummary();
+  const cardBg = useColorModeValue('surface.base', '#121212');
+  const borderColor = useColorModeValue('border.subtle', 'whiteAlpha.200');
+  const headerBg = useColorModeValue('gray.50', 'whiteAlpha.100');
+  const mutedText = useColorModeValue('gray.500', 'gray.400');
+  const rowHoverBg = useColorModeValue('gray.50', 'whiteAlpha.100');
+  const detailTextColor = useColorModeValue('gray.700', 'gray.200');
 
   const workerDetailQuery = useApiQuery<WorkerDetail>(
     ['worker', selectedWorkerId],
@@ -227,27 +185,7 @@ export const WorkersPage = () => {
       return matchesName || matchesPhone;
     });
   }, [sortedWorkers, searchTerm]);
-
   const salaryAlerts = useMemo(() => sortedWorkers.filter((worker) => worker.isSalaryDue), [sortedWorkers]);
-
-  // Calculate worker statistics
-  const workerStats = useMemo(() => {
-    if (!sortedWorkers.length) return null;
-
-    const totalWorkers = sortedWorkers.length;
-    const totalJobs = sortedWorkers.reduce((sum, worker) => sum + worker.totalJobs, 0);
-    const totalServices = sortedWorkers.reduce((sum, worker) => sum + worker.totalServices, 0);
-    const totalExpenses = sortedWorkers.reduce((sum, worker) => sum + getTotalExpenses(worker), 0);
-    const pendingSalaries = salaryAlerts.length;
-
-    return {
-      totalWorkers,
-      totalJobs,
-      totalServices,
-      totalExpenses,
-      pendingSalaries
-    };
-  }, [sortedWorkers, salaryAlerts]);
 
   const handleCreateFieldChange =
     (field: keyof typeof initialFormState) =>
@@ -269,8 +207,7 @@ export const WorkersPage = () => {
       toast({
         status: 'warning',
         title: 'Name required',
-        description: 'Please provide the worker name before saving.',
-        position: 'top-right'
+        description: 'Please provide the worker name before saving.'
       });
       return;
     }
@@ -291,8 +228,7 @@ export const WorkersPage = () => {
       toast({
         status: 'warning',
         title: 'Invalid expense amount',
-        description: 'Expenses must be non-negative numbers.',
-        position: 'top-right'
+        description: 'Expenses must be non-negative numbers.'
       });
       return;
     }
@@ -310,9 +246,8 @@ export const WorkersPage = () => {
       });
       toast({
         status: 'success',
-        title: 'Worker added successfully',
-        description: `${createFormState.name.trim()} has been added to the roster.`,
-        position: 'top-right'
+        title: 'Worker added',
+        description: `${createFormState.name.trim()} has been added to the roster.`
       });
       resetCreateForm();
       createDisclosure.onClose();
@@ -320,8 +255,7 @@ export const WorkersPage = () => {
       toast({
         status: 'error',
         title: 'Unable to add worker',
-        description: getErrorMessage(createError, 'Please try again after syncing the database.'),
-        position: 'top-right'
+        description: getErrorMessage(createError, 'Please try again after syncing the database.')
       });
     }
   };
@@ -332,16 +266,13 @@ export const WorkersPage = () => {
       await updateSalaryStatus({ id: worker.id, markAs });
       toast({
         status: 'success',
-        title: `Salary status updated`,
-        description: `${worker.name} has been marked as ${markAs === 'PAID' ? 'paid' : 'unpaid'}.`,
-        position: 'top-right'
+        title: `Marked ${worker.name} as ${markAs === 'PAID' ? 'paid' : 'unpaid'}.`
       });
     } catch (error) {
       toast({
         status: 'error',
-        title: 'Unable to update salary status',
-        description: getErrorMessage(error, 'Please try again.'),
-        position: 'top-right'
+        title: 'Unable to update salary status.',
+        description: getErrorMessage(error, 'Please try again.')
       });
     } finally {
       setSalaryUpdatingId(null);
@@ -372,8 +303,7 @@ export const WorkersPage = () => {
       toast({
         status: 'warning',
         title: 'Name required',
-        description: 'Please provide the worker name before saving.',
-        position: 'top-right'
+        description: 'Please provide the worker name before saving.'
       });
       return;
     }
@@ -387,8 +317,7 @@ export const WorkersPage = () => {
       toast({
         status: 'warning',
         title: 'Invalid expense amount',
-        description: 'Expenses must be non-negative numbers.',
-        position: 'top-right'
+        description: 'Expenses must be non-negative numbers.'
       });
       return;
     }
@@ -408,9 +337,8 @@ export const WorkersPage = () => {
 
       toast({
         status: 'success',
-        title: 'Worker updated successfully',
-        description: `${editFormState.name.trim()} has been updated.`,
-        position: 'top-right'
+        title: 'Worker updated',
+        description: `${editFormState.name.trim()} has been updated.`
       });
       resetEditForm();
       setEditingWorker(null);
@@ -419,8 +347,7 @@ export const WorkersPage = () => {
       toast({
         status: 'error',
         title: 'Unable to update worker',
-        description: getErrorMessage(updateError, 'Please review the details and try again.'),
-        position: 'top-right'
+        description: getErrorMessage(updateError, 'Please review the details and try again.')
       });
     }
   };
@@ -445,8 +372,7 @@ export const WorkersPage = () => {
       toast({
         status: 'success',
         title: 'Worker removed',
-        description: `${workerPendingDelete.name} has been removed from the roster.`,
-        position: 'top-right'
+        description: `${workerPendingDelete.name} has been removed from the roster.`
       });
       closeDeleteDialog();
     } catch (deleteError) {
@@ -456,8 +382,7 @@ export const WorkersPage = () => {
         description: getErrorMessage(
           deleteError,
           'Remove any open assignments for this worker before deleting.'
-        ),
-        position: 'top-right'
+        )
       });
     }
   };
@@ -472,585 +397,256 @@ export const WorkersPage = () => {
     setSelectedWorkerId(null);
   };
 
-  // Mobile card view for workers
-  const WorkerCard = ({ worker }: { worker: Worker }) => {
-    const totalExpenses = getTotalExpenses(worker);
-    
-    return (
-      <Card 
-        bg={cardBg} 
-        border="1px" 
-        borderColor={borderColor}
-        transition="all 0.2s"
-        _hover={{ 
-          transform: 'translateY(-2px)',
-          boxShadow: 'lg'
-        }}
-      >
-        <CardBody>
-          <VStack align="stretch" spacing={3}>
-            {/* Header */}
-            <Flex justify="space-between" align="flex-start">
-              <HStack spacing={3} flex={1}>
-                <Avatar 
-                  size="md" 
-                  name={worker.name}
-                  bg="brand.500"
-                  color="white"
-                />
-                <Box flex={1}>
-                  <Text fontWeight="bold" fontSize="lg" mb={1}>
-                    {worker.name}
-                  </Text>
-                  <Text fontSize="sm" color={mutedText}>
-                    {worker.phone ?? 'No phone'}
-                  </Text>
-                </Box>
-              </HStack>
-              {worker.isSalaryDue && (
-                <Badge colorScheme="orange" variant="solid" fontSize="xs">
-                  Salary Due
-                </Badge>
-              )}
-            </Flex>
-
-            {/* Performance Stats */}
-            <SimpleGrid columns={2} spacing={4}>
-              <Box textAlign="center">
-                <Text fontSize="xs" color={mutedText}>Jobs</Text>
-                <Text fontWeight="bold" fontSize="lg">
-                  {worker.totalJobs}
-                </Text>
-              </Box>
-              <Box textAlign="center">
-                <Text fontSize="xs" color={mutedText}>Services</Text>
-                <Text fontWeight="bold" fontSize="lg">
-                  {worker.totalServices}
-                </Text>
-              </Box>
-            </SimpleGrid>
-
-            {/* Salary Information */}
-            <Box>
-              <Text fontSize="sm" color={mutedText} mb={1}>Salary</Text>
-              <Flex justify="space-between" align="center">
-                <Text fontWeight="medium">
-                  {worker.salaryAmount ? formatCurrency(Number(worker.salaryAmount)) : '—'}
-                </Text>
-                <Badge colorScheme="blue" variant="subtle" fontSize="xs">
-                  {worker.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}
-                </Badge>
-              </Flex>
-            </Box>
-
-            {/* Expenses */}
-            <Box>
-              <Text fontSize="sm" color={mutedText} mb={1}>Total Expenses</Text>
-              <Text fontWeight="bold" color={accentColor}>
-                {formatCurrency(totalExpenses)}
-              </Text>
-            </Box>
-
-            {/* Actions */}
-            <Flex justify="space-between" pt={2}>
-              <HStack spacing={1}>
-                <Tooltip label="View details">
-                  <IconButton
-                    aria-label="View worker profile"
-                    icon={<FiInfo />}
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openDetailDrawer(worker)}
-                  />
-                </Tooltip>
-                <Tooltip label="Edit worker">
-                  <IconButton
-                    aria-label="Edit worker"
-                    icon={<FiEdit2 />}
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openEditModal(worker)}
-                  />
-                </Tooltip>
-              </HStack>
-              <HStack spacing={1}>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme={worker.isSalaryDue ? 'orange' : 'green'}
-                  isLoading={salaryUpdatingId === worker.id && isUpdatingSalaryStatus}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleSalaryStatusChange(worker, worker.isSalaryDue ? 'PAID' : 'UNPAID');
-                  }}
-                >
-                  {worker.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
-                </Button>
-                <Tooltip label="Remove worker">
-                  <IconButton
-                    aria-label="Remove worker"
-                    icon={<FiTrash2 />}
-                    size="sm"
-                    variant="ghost"
-                    colorScheme="red"
-                    onClick={() => openDeleteDialog(worker)}
-                  />
-                </Tooltip>
-              </HStack>
-            </Flex>
-          </VStack>
-        </CardBody>
-      </Card>
-    );
-  };
-
   return (
     <AppShell
       title="Team & Technicians"
-      breadcrumbs={[
-        { label: 'Dashboard', to: '/' },
-        { label: 'Team' }
-      ]}
       actions={
-        <Button 
-          colorScheme="brand" 
+        <Button
+          colorScheme="brand"
           onClick={() => {
             resetCreateForm();
             createDisclosure.onOpen();
           }}
-          leftIcon={<MdAdd />}
-          size={buttonSize}
         >
-          Add Team Member
+          Add Worker
         </Button>
       }
       inventoryAlertsCount={summary?.inventoryAlertsCount}
     >
-      <Stack spacing={6}>
-        {/* Salary Alert Banner */}
-        {salaryAlerts.length > 0 && (
-          <Alert status="warning" borderRadius="lg" variant="left-accent">
-            <AlertIcon />
-            <Box>
-              <Text fontWeight="semibold">
-                Salaries due for {salaryAlerts.length} technician{salaryAlerts.length > 1 ? 's' : ''}
-              </Text>
-              <Text fontSize="sm">
-                Use the action buttons to mark salaries as paid when processed.
-              </Text>
-            </Box>
-          </Alert>
-        )}
-
-        {/* Worker Statistics */}
-        {workerStats && (
-          <SimpleGrid columns={gridColumns} gap={4}>
-            <StatCard 
-              label="Total Team" 
-              value={workerStats.totalWorkers}
-              icon={FiUser}
-              colorScheme="blue"
-              size="sm"
-            />
-            <StatCard 
-              label="Total Jobs" 
-              value={workerStats.totalJobs}
-              icon={MdWork}
-              colorScheme="green"
-              size="sm"
-            />
-            <StatCard 
-              label="Pending Salaries" 
-              value={workerStats.pendingSalaries}
-              icon={MdPayment}
-              colorScheme="orange"
-              size="sm"
-            />
-            <StatCard 
-              label="Total Expenses" 
-              value={formatCurrency(workerStats.totalExpenses)}
-              icon={FiDollarSign}
-              colorScheme="purple"
-              size="sm"
-              isCurrency
-            />
-          </SimpleGrid>
-        )}
-
-        {/* Search and Filters */}
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardBody>
-            <Stack direction={{ base: 'column', md: 'row' }} spacing={4} align={{ base: 'stretch', md: 'center' }}>
-              <InputGroup maxW={{ base: '100%', md: '320px', lg:'600px' }}>
+      {salaryAlerts.length > 0 ? (
+        <Alert status="warning" borderRadius="md" mb={4}>
+          <AlertIcon />
+          Salaries are due for {salaryAlerts.length} technician{salaryAlerts.length > 1 ? 's' : ''}. Use the action buttons to mark them as paid when processed.
+        </Alert>
+      ) : null}
+      {isLoading ? (
+        <Spinner />
+      ) : error ? (
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          Failed to load worker catalog
+        </Alert>
+      ) : (
+        <Box bg={cardBg} borderRadius="xl" borderWidth="1px" borderColor={borderColor} overflow="hidden">
+          <Box px={6} py={4}>
+            <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
+              <InputGroup maxW="320px">
                 <InputLeftElement pointerEvents="none">
-                  <FiSearch color={mutedText} />
+                  <FiSearch color="var(--chakra-colors-gray-400)" />
                 </InputLeftElement>
                 <Input
-                  placeholder="Search team members by name or phone..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search by name, email, or phone"
                 />
               </InputGroup>
-              
-           
-            </Stack>
-          </CardBody>
-        </Card>
-
-        {/* Workers List */}
-        <Card bg={cardBg} border="1px" borderColor={borderColor}>
-          <CardHeader>
-            <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-              <HStack spacing={3}>
-                <Icon as={MdWork} color={accentColor} boxSize={6} />
-                <Text fontSize="xl" fontWeight="semibold">Team Members</Text>
-              </HStack>
-              {!isLoading && (
-                <Badge colorScheme="blue" variant="subtle" fontSize="sm">
-                  {filteredWorkers.length} {filteredWorkers.length === 1 ? 'member' : 'members'}
-                </Badge>
-              )}
+              <Text color={mutedText} fontSize="sm">
+                {filteredWorkers.length} of {sortedWorkers.length} team members showing
+              </Text>
             </Flex>
-          </CardHeader>
-          <CardBody pt={0}>
-            {/* Loading State */}
-            {isLoading && (
-              <>
-                {showMobileCards ? (
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <Card key={index}>
-                        <CardBody>
-                          <Stack spacing={3}>
-                            <Skeleton height="24px" width="70%" />
-                            <Skeleton height="16px" width="40%" />
-                            <Skeleton height="12px" width="90%" />
-                            <Skeleton height="20px" width="60%" />
-                          </Stack>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
-                ) : (
-                  <Table variant={tableVariant}>
-                    <Thead bg={headerBg}>
-                      <Tr>
-                        <Th>Name</Th>
-                        <Th>Contact</Th>
-                        <Th isNumeric>Jobs</Th>
-                        <Th isNumeric>Services</Th>
-                        <Th>Salary</Th>
-                        <Th isNumeric>Expenses</Th>
-                        <Th textAlign="right">Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <WorkerRowSkeleton key={index} />
-                      ))}
-                    </Tbody>
-                  </Table>
-                )}
-              </>
-            )}
-
-            {/* Error State */}
-            {error && !isLoading && (
-              <Alert status="error" borderRadius="lg">
-                <AlertIcon />
-                <Box>
-                  <Text fontWeight="semibold">Unable to load team members</Text>
-                  <Text fontSize="sm" mt={1}>
-                    {error instanceof Error ? error.message : 'Please check your connection and try again.'}
-                  </Text>
-                </Box>
-              </Alert>
-            )}
-
-            {/* Empty State */}
-            {!isLoading && !error && filteredWorkers.length === 0 && (
-              <Box textAlign="center" py={12}>
-                <Icon as={MdWork} boxSize={12} color={mutedText} mb={4} />
-                <Text fontSize="lg" fontWeight="semibold" mb={2}>
-                  {searchTerm ? 'No matching team members found' : 'No team members yet'}
-                </Text>
-                <Text color={mutedText} mb={6}>
-                  {searchTerm 
-                    ? 'Try adjusting your search terms to find what you\'re looking for.'
-                    : 'Get started by adding your first team member to the roster.'
-                  }
-                </Text>
-                {!searchTerm && (
-                  <Button 
-                    colorScheme="brand" 
-                    onClick={() => {
-                      resetCreateForm();
-                      createDisclosure.onOpen();
-                    }}
-                    leftIcon={<MdAdd />}
-                  >
-                    Add First Team Member
-                  </Button>
-                )}
-              </Box>
-            )}
-
-            {/* Results - Mobile Card View */}
-            {!isLoading && !error && filteredWorkers.length > 0 && showMobileCards && (
-              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                {filteredWorkers.map((worker) => (
-                  <WorkerCard key={worker.id} worker={worker} />
-                ))}
-              </SimpleGrid>
-            )}
-
-            {/* Results - Desktop Table View */}
-            {!isLoading && !error && filteredWorkers.length > 0 && !showMobileCards && (
-              <Box overflowX="auto">
-                <Table variant={tableVariant}>
-                  <Thead bg={headerBg}>
-                    <Tr>
-                      <Th>Team Member</Th>
-                      <Th>Contact</Th>
-                      <Th isNumeric>Jobs Completed</Th>
-                      <Th isNumeric>Services Delivered</Th>
-                      <Th>Salary Status</Th>
-                      <Th isNumeric>Total Expenses</Th>
-                      <Th textAlign="right">Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {filteredWorkers.map((worker) => {
-                      const totalExpenses = getTotalExpenses(worker);
-                      
-                      return (
-                        <Tr 
-                          key={worker.id}
-                          _hover={{ bg: hoverBg }}
-                          transition="background 0.2s"
+          </Box>
+          <Divider />
+          <Table>
+            <Thead bg={headerBg}>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Contact</Th>
+                <Th isNumeric>Jobs Completed</Th>
+                <Th isNumeric>Services Delivered</Th>
+                <Th>Salary</Th>
+                <Th isNumeric>Total Expenses</Th>
+                <Th textAlign="right">Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {filteredWorkers.length === 0 ? (
+                <Tr>
+                  <Td colSpan={7}>
+                    <Text color={mutedText}>
+                      {searchTerm.trim()
+                        ? 'No workers match your search.'
+                        : 'No team members recorded yet.'}
+                    </Text>
+                  </Td>
+                </Tr>
+              ) : (
+                filteredWorkers.map((worker) => (
+                  <Tr key={worker.id} _hover={{ bg: rowHoverBg }}>
+                    <Td>
+                      <Text fontWeight="medium">{worker.name}</Text>
+                    </Td>
+                    <Td>
+                      <VStack align="flex-start" spacing={0}>
+                        <Text>{worker.phone ?? '—'}</Text>
+                        <Text fontSize="xs" color={mutedText}>
+                          Next due: {worker.nextSalaryDueOn ? new Date(worker.nextSalaryDueOn).toLocaleDateString() : 'N/A'}
+                        </Text>
+                      </VStack>
+                    </Td>
+                    <Td isNumeric>{worker.totalJobs}</Td>
+                    <Td isNumeric>{worker.totalServices}</Td>
+                    <Td>
+                      <VStack align="flex-start" spacing={1}>
+                        <Text fontWeight="medium">
+                          {worker.salaryAmount ? formatCurrency(Number(worker.salaryAmount)) : '—'}
+                        </Text>
+                        <Text fontSize="xs" color={worker.isSalaryDue ? 'orange.400' : mutedText}>
+                          {worker.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          colorScheme={worker.isSalaryDue ? 'orange' : 'green'}
+                          isLoading={salaryUpdatingId === worker.id && isUpdatingSalaryStatus}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleSalaryStatusChange(worker, worker.isSalaryDue ? 'PAID' : 'UNPAID');
+                          }}
                         >
-                          <Td>
-                            <HStack spacing={3}>
-                              <Avatar 
-                                size="sm" 
-                                name={worker.name}
-                                bg="brand.500"
-                                color="white"
-                              />
-                              <Box>
-                                <Text fontWeight="medium">{worker.name}</Text>
-                                <Text fontSize="xs" color={mutedText}>
-                                  {worker.totalJobs} jobs • {worker.totalServices} services
-                                </Text>
-                              </Box>
-                            </HStack>
-                          </Td>
-                          <Td>
-                            <VStack align="flex-start" spacing={0}>
-                              <Text fontSize="sm">{worker.phone ?? '—'}</Text>
-                              <Text fontSize="xs" color={mutedText}>
-                                Next due: {worker.nextSalaryDueOn ? new Date(worker.nextSalaryDueOn).toLocaleDateString() : 'N/A'}
-                              </Text>
-                            </VStack>
-                          </Td>
-                          <Td isNumeric fontWeight="bold">
-                            {worker.totalJobs}
-                          </Td>
-                          <Td isNumeric fontWeight="bold">
-                            {worker.totalServices}
-                          </Td>
-                          <Td>
-                            <VStack align="flex-start" spacing={1}>
-                              <HStack spacing={2}>
-                                <Text fontWeight="medium">
-                                  {worker.salaryAmount ? formatCurrency(Number(worker.salaryAmount)) : '—'}
-                                </Text>
-                                <Badge 
-                                  colorScheme={worker.isSalaryDue ? 'orange' : 'green'} 
-                                  variant="subtle"
-                                  fontSize="xs"
-                                >
-                                  {worker.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}
-                                </Badge>
-                              </HStack>
-                              <Button
-                                size="xs"
-                                variant="outline"
-                                colorScheme={worker.isSalaryDue ? 'orange' : 'green'}
-                                isLoading={salaryUpdatingId === worker.id && isUpdatingSalaryStatus}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleSalaryStatusChange(worker, worker.isSalaryDue ? 'PAID' : 'UNPAID');
-                                }}
-                              >
-                                {worker.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
-                              </Button>
-                            </VStack>
-                          </Td>
-                          <Td isNumeric fontWeight="bold" color={accentColor}>
-                            {formatCurrency(totalExpenses)}
-                          </Td>
-                          <Td>
-                            <HStack justify="flex-end" spacing={1}>
-                              <Tooltip label="View details">
-                                <IconButton
-                                  aria-label="View worker profile"
-                                  icon={<FiInfo />}
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => openDetailDrawer(worker)}
-                                />
-                              </Tooltip>
-                              <Tooltip label="Edit worker">
-                                <IconButton
-                                  aria-label="Edit worker"
-                                  icon={<FiEdit2 />}
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => openEditModal(worker)}
-                                />
-                              </Tooltip>
-                              <Tooltip label="Remove worker">
-                                <IconButton
-                                  aria-label="Remove worker"
-                                  icon={<FiTrash2 />}
-                                  size="sm"
-                                  variant="ghost"
-                                  colorScheme="red"
-                                  onClick={() => openDeleteDialog(worker)}
-                                />
-                              </Tooltip>
-                            </HStack>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </Box>
-            )}
-          </CardBody>
-        </Card>
-      </Stack>
+                          {worker.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
+                        </Button>
+                      </VStack>
+                    </Td>
+                    <Td isNumeric>{formatCurrency(getTotalExpenses(worker))}</Td>
+                    <Td>
+                      <HStack justify="flex-end" spacing={2}>
+                        <Tooltip label="View worker profile">
+                          <IconButton
+                            aria-label="View worker profile"
+                            icon={<FiInfo />}
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openDetailDrawer(worker)}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Edit worker">
+                          <IconButton
+                            aria-label="Edit worker"
+                            icon={<FiEdit2 />}
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEditModal(worker)}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Remove worker">
+                          <IconButton
+                            aria-label="Remove worker"
+                            icon={<FiTrash2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={() => openDeleteDialog(worker)}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        </Box>
+      )}
 
-      {/* Create Worker Modal */}
       <FormModal
         isOpen={createDisclosure.isOpen}
         onClose={() => {
           resetCreateForm();
           createDisclosure.onClose();
         }}
-        title="Add Team Member"
-        submitLabel="Create Worker"
+        title="Add Worker"
         isSubmitting={isCreating}
         onSubmit={handleCreateSubmit}
-        size={(modalSize ?? 'xl') as 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full'}
-        variant="default"
       >
-        <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
+        <VStack spacing={4}>
           <FormControl isRequired>
-            <FormLabel>Full Name</FormLabel>
-            <Input 
-              value={createFormState.name} 
-              onChange={handleCreateFieldChange('name')} 
-              placeholder="Enter worker's full name"
-            />
+            <FormLabel>Name</FormLabel>
+            <Input value={createFormState.name} onChange={handleCreateFieldChange('name')} />
           </FormControl>
           <FormControl>
-            <FormLabel>Phone Number</FormLabel>
-            <Input 
-              value={createFormState.phone} 
-              onChange={handleCreateFieldChange('phone')} 
-              placeholder="Contact number (optional)"
-            />
+            <FormLabel>Phone</FormLabel>
+            <Input value={createFormState.phone} onChange={handleCreateFieldChange('phone')} />
           </FormControl>
-          
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Text fontWeight="semibold" mb={3} color={accentColor}>Salary Information</Text>
-          </GridItem>
-          
-          <FormControl>
-            <FormLabel>Salary Amount</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={createFormState.salaryAmount}
-              onChange={(value) => setCreateFormState((prev) => ({ ...prev, salaryAmount: value }))}
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Salary Frequency</FormLabel>
-            <Select
-              value={createFormState.salaryFrequency}
-              onChange={(event) => setCreateFormState((prev) => ({ ...prev, salaryFrequency: event.target.value }))}
-            >
-              <option value="DAILY">Daily</option>
-              <option value="MONTHLY">Monthly</option>
-            </Select>
-          </FormControl>
-
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Text fontWeight="semibold" mb={3} color={accentColor}>Expense Allowances</Text>
-          </GridItem>
-
-          <FormControl>
-            <FormLabel>Commute Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={createFormState.commuteExpense}
-              onChange={(value) =>
-                setCreateFormState((prev) => ({ ...prev, commuteExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Shift Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={createFormState.shiftExpense}
-              onChange={(value) =>
-                setCreateFormState((prev) => ({ ...prev, shiftExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Meal Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={createFormState.mealExpense}
-              onChange={(value) =>
-                setCreateFormState((prev) => ({ ...prev, mealExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Other Expenses</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={createFormState.otherExpense}
-              onChange={(value) =>
-                setCreateFormState((prev) => ({ ...prev, otherExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-        </Grid>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+            <FormControl>
+              <FormLabel>Salary Amount</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.salaryAmount}
+                onChange={(value) => setCreateFormState((prev) => ({ ...prev, salaryAmount: value }))}
+              >
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Salary Frequency</FormLabel>
+              <Select
+                value={createFormState.salaryFrequency}
+                onChange={(event) => setCreateFormState((prev) => ({ ...prev, salaryFrequency: event.target.value }))}
+              >
+                <option value="DAILY">Daily</option>
+                <option value="MONTHLY">Monthly</option>
+              </Select>
+            </FormControl>
+          </SimpleGrid>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+            <FormControl>
+              <FormLabel>Commute Expense</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.commuteExpense}
+                onChange={(value) =>
+                  setCreateFormState((prev) => ({ ...prev, commuteExpense: value }))
+                }
+              >
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Shift Expense</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.shiftExpense}
+                onChange={(value) =>
+                  setCreateFormState((prev) => ({ ...prev, shiftExpense: value }))
+                }
+              >
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Meal Expense</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.mealExpense}
+                onChange={(value) =>
+                  setCreateFormState((prev) => ({ ...prev, mealExpense: value }))
+                }
+              >
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Other Expenses</FormLabel>
+              <NumberInput
+                min={0}
+                precision={2}
+                value={createFormState.otherExpense}
+                onChange={(value) =>
+                  setCreateFormState((prev) => ({ ...prev, otherExpense: value }))
+                }
+              >
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+          </SimpleGrid>
+        </VStack>
       </FormModal>
 
-      {/* Edit Worker Modal */}
       <FormModal
         isOpen={editDisclosure.isOpen}
         onClose={() => {
@@ -1058,324 +654,263 @@ export const WorkersPage = () => {
           setEditingWorker(null);
           editDisclosure.onClose();
         }}
-        title={`Edit ${editingWorker?.name}`}
+        title="Edit Worker"
         submitLabel="Save Changes"
         isSubmitting={isUpdating}
         onSubmit={handleEditSubmit}
-        size={(modalSize ?? 'xl') as 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full'}
-        variant="default"
       >
-        <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
-          <FormControl isRequired>
-            <FormLabel>Full Name</FormLabel>
-            <Input value={editFormState.name} onChange={handleEditFieldChange('name')} />
-          </FormControl>
-          <FormControl>
-            <FormLabel>Phone Number</FormLabel>
-            <Input value={editFormState.phone} onChange={handleEditFieldChange('phone')} />
-          </FormControl>
+          <VStack spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>Name</FormLabel>
+              <Input value={editFormState.name} onChange={handleEditFieldChange('name')} />
+            </FormControl>
+            <HStack spacing={4} w="100%">
+              <FormControl>
+                <FormLabel>Phone</FormLabel>
+                <Input value={editFormState.phone} onChange={handleEditFieldChange('phone')} />
+              </FormControl>
+            </HStack>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+              <FormControl>
+                <FormLabel>Salary Amount</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.salaryAmount}
+                  onChange={(value) => setEditFormState((prev) => ({ ...prev, salaryAmount: value }))}
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Salary Frequency</FormLabel>
+                <Select
+                  value={editFormState.salaryFrequency}
+                  onChange={(event) => setEditFormState((prev) => ({ ...prev, salaryFrequency: event.target.value }))}
+                >
+                  <option value="DAILY">Daily</option>
+                  <option value="MONTHLY">Monthly</option>
+                </Select>
+              </FormControl>
+            </SimpleGrid>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+              <FormControl>
+                <FormLabel>Commute Expense</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.commuteExpense}
+                  onChange={(value) =>
+                    setEditFormState((prev) => ({ ...prev, commuteExpense: value }))
+                  }
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Shift Expense</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.shiftExpense}
+                  onChange={(value) =>
+                    setEditFormState((prev) => ({ ...prev, shiftExpense: value }))
+                  }
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Meal Expense</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.mealExpense}
+                  onChange={(value) =>
+                    setEditFormState((prev) => ({ ...prev, mealExpense: value }))
+                  }
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Other Expenses</FormLabel>
+                <NumberInput
+                  min={0}
+                  precision={2}
+                  value={editFormState.otherExpense}
+                  onChange={(value) =>
+                    setEditFormState((prev) => ({ ...prev, otherExpense: value }))
+                  }
+                >
+                  <NumberInputField />
+                </NumberInput>
+              </FormControl>
+            </SimpleGrid>
+          </VStack>
+        </FormModal>
 
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Text fontWeight="semibold" mb={3} color={accentColor}>Expense Allowances</Text>
-          </GridItem>
-
-          <FormControl>
-            <FormLabel>Commute Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={editFormState.commuteExpense}
-              onChange={(value) =>
-                setEditFormState((prev) => ({ ...prev, commuteExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Shift Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={editFormState.shiftExpense}
-              onChange={(value) =>
-                setEditFormState((prev) => ({ ...prev, shiftExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Meal Expense</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={editFormState.mealExpense}
-              onChange={(value) =>
-                setEditFormState((prev) => ({ ...prev, mealExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Other Expenses</FormLabel>
-            <NumberInput
-              min={0}
-              precision={2}
-              value={editFormState.otherExpense}
-              onChange={(value) =>
-                setEditFormState((prev) => ({ ...prev, otherExpense: value }))
-              }
-            >
-              <NumberInputField placeholder="0.00" />
-            </NumberInput>
-          </FormControl>
-        </Grid>
-      </FormModal>
-
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         isOpen={deleteDisclosure.isOpen}
         leastDestructiveRef={cancelDeleteRef}
         onClose={closeDeleteDialog}
-        isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent mx={4}>
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              <HStack spacing={2}>
-                <Icon as={MdWarning} color="red.500" />
-                <Text>Remove Team Member</Text>
-              </HStack>
+              Remove Worker
             </AlertDialogHeader>
+
             <AlertDialogBody>
-              {workerPendingDelete && (
-                <VStack align="stretch" spacing={3}>
-                  <Text>
-                    Are you sure you want to remove <strong>{workerPendingDelete.name}</strong> from the team?
-                  </Text>
-                  <Text color={mutedText}>
-                    This will permanently remove the worker and all their associated data. This action cannot be undone.
-                  </Text>
-                  <Alert status="warning" size="sm" borderRadius="md">
-                    <AlertIcon />
-                    <Text fontSize="sm">
-                      This worker has {workerPendingDelete.totalJobs} completed jobs and {workerPendingDelete.totalServices} services.
-                      Removing them may affect historical records.
-                    </Text>
-                  </Alert>
-                </VStack>
-              )}
+              {workerPendingDelete
+                ? `Are you sure you want to remove ${workerPendingDelete.name}? This action cannot be undone.`
+                : 'Are you sure you want to remove this worker?'}
             </AlertDialogBody>
+
             <AlertDialogFooter>
-              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog} size="sm">
+              <Button ref={cancelDeleteRef} onClick={closeDeleteDialog}>
                 Cancel
               </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={handleDelete} 
-                ml={3} 
-                isLoading={isDeleting}
-                size="sm"
-              >
-                Remove Team Member
+              <Button colorScheme="red" onClick={handleDelete} ml={3} isLoading={isDeleting}>
+                Delete
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
 
-      {/* Worker Detail Drawer */}
-      <Drawer 
-        isOpen={detailDisclosure.isOpen} 
-        placement="right" 
-        size={drawerSize} 
-        onClose={closeDetailDrawer}
-      >
+      <Drawer isOpen={detailDisclosure.isOpen} placement="right" size="md" onClose={closeDetailDrawer}>
         <DrawerOverlay />
         <DrawerContent>
           <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px">
-            <VStack align="flex-start" spacing={2}>
-              <HStack spacing={3}>
-                <Avatar 
-                  size="md" 
-                  name={workerDetailQuery.data?.name}
-                  bg="brand.500"
-                  color="white"
-                />
-                <Box>
-                  <Text fontSize="xl" fontWeight="bold">{workerDetailQuery.data?.name ?? 'Worker Profile'}</Text>
-                  <Text fontSize="sm" color={mutedText}>
-                    {workerDetailQuery.data?.phone ?? 'No contact information'}
-                  </Text>
-                </Box>
-              </HStack>
-              {workerDetailQuery.data?.isSalaryDue && (
-                <Badge colorScheme="orange" variant="solid">
-                  Salary Due
-                </Badge>
-              )}
-            </VStack>
+          <DrawerHeader>
+            {workerDetailQuery.data?.name ?? 'Worker profile'}
           </DrawerHeader>
           <DrawerBody>
             {workerDetailQuery.isLoading ? (
-              <Stack spacing={4}>
-                <Skeleton height="20px" />
-                <Skeleton height="20px" width="80%" />
-                <Skeleton height="100px" />
-              </Stack>
+              <Spinner />
             ) : workerDetailQuery.error ? (
-              <Alert status="error" borderRadius="lg">
+              <Alert status="error" borderRadius="md">
                 <AlertIcon />
-                Unable to load worker details. Please try again.
+                Unable to load worker details. Try again in a moment.
               </Alert>
             ) : workerDetailQuery.data ? (
               <Stack spacing={6}>
-                {/* Performance Summary */}
-                <Card variant="outline">
-                  <CardHeader pb={3}>
-                    <HStack spacing={2}>
-                      <Icon as={MdWork} color={accentColor} />
-                      <Text fontWeight="semibold">Performance Summary</Text>
-                    </HStack>
-                  </CardHeader>
-                  <CardBody pt={0}>
-                    <SimpleGrid columns={2} spacing={4}>
-                      <Box textAlign="center">
-                        <Text fontSize="2xl" fontWeight="bold" color={accentColor}>
-                          {workerDetailQuery.data.totalJobs}
-                        </Text>
-                        <Text fontSize="sm" color={mutedText}>Jobs Completed</Text>
-                      </Box>
-                      <Box textAlign="center">
-                        <Text fontSize="2xl" fontWeight="bold" color={accentColor}>
-                          {workerDetailQuery.data.totalServices}
-                        </Text>
-                        <Text fontSize="sm" color={mutedText}>Services Delivered</Text>
-                      </Box>
-                    </SimpleGrid>
-                  </CardBody>
-                </Card>
-
-                {/* Salary Information */}
-                <Card variant="outline">
-                  <CardHeader pb={3}>
-                    <HStack spacing={2}>
-                      <Icon as={MdAttachMoney} color={accentColor} />
-                      <Text fontWeight="semibold">Salary Information</Text>
-                    </HStack>
-                  </CardHeader>
-                  <CardBody pt={0}>
-                    <VStack align="stretch" spacing={3}>
-                      <Flex justify="space-between">
-                        <Text>Amount</Text>
-                        <Text fontWeight="medium">
-                          {workerDetailQuery.data.salaryAmount ? formatCurrency(Number(workerDetailQuery.data.salaryAmount)) : '—'}
-                        </Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text>Frequency</Text>
-                        <Badge colorScheme="blue" variant="subtle">
-                          {workerDetailQuery.data.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}
-                        </Badge>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text>Last Paid</Text>
-                        <Text>
-                          {workerDetailQuery.data.lastSalaryPaidAt
-                            ? formatDateTime(workerDetailQuery.data.lastSalaryPaidAt)
-                            : 'Not recorded'}
-                        </Text>
-                      </Flex>
-                      <Button
-                        variant="outline"
-                        colorScheme={workerDetailQuery.data.isSalaryDue ? 'orange' : 'green'}
-                        isLoading={salaryUpdatingId === workerDetailQuery.data.id && isUpdatingSalaryStatus}
-                        onClick={() =>
-                          handleSalaryStatusChange(workerDetailQuery.data, workerDetailQuery.data.isSalaryDue ? 'PAID' : 'UNPAID')
-                        }
-                      >
-                        {workerDetailQuery.data.isSalaryDue ? 'Mark Salary as Paid' : 'Mark as Unpaid'}
-                      </Button>
-                    </VStack>
-                  </CardBody>
-                </Card>
-
-                {/* Expense Breakdown */}
-                <Card variant="outline">
-                  <CardHeader pb={3}>
-                    <HStack spacing={2}>
-                      <Icon as={FiDollarSign} color={accentColor} />
-                      <Text fontWeight="semibold">Expense Breakdown</Text>
-                    </HStack>
-                  </CardHeader>
-                  <CardBody pt={0}>
-                    <VStack align="stretch" spacing={2}>
-                      <Flex justify="space-between">
-                        <Text>Commute</Text>
-                        <Text>{formatCurrency(toExpenseNumber(workerDetailQuery.data.commuteExpense))}</Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text>Shift</Text>
-                        <Text>{formatCurrency(toExpenseNumber(workerDetailQuery.data.shiftExpense))}</Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text>Meal</Text>
-                        <Text>{formatCurrency(toExpenseNumber(workerDetailQuery.data.mealExpense))}</Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text>Other</Text>
-                        <Text>{formatCurrency(toExpenseNumber(workerDetailQuery.data.otherExpense))}</Text>
-                      </Flex>
-                      <Divider />
-                      <Flex justify="space-between" fontWeight="bold">
-                        <Text>Total Expenses</Text>
-                        <Text color={accentColor}>{formatCurrency(detailExpensesTotal)}</Text>
-                      </Flex>
-                    </VStack>
-                  </CardBody>
-                </Card>
-
-                {/* Recent Assignments */}
-                {workerDetailQuery.data.assignments.length > 0 && (
-                  <Card variant="outline">
-                    <CardHeader pb={3}>
-                      <HStack spacing={2}>
-                        <Icon as={MdSchedule} color={accentColor} />
-                        <Text fontWeight="semibold">Recent Assignments</Text>
-                      </HStack>
-                    </CardHeader>
-                    <CardBody pt={0}>
-                      <VStack align="stretch" spacing={3}>
-                        {workerDetailQuery.data.assignments.map((assignment) => (
-                          <Box key={assignment.id} borderWidth="1px" borderRadius="lg" p={4}>
-                            <HStack justify="space-between" align="flex-start">
-                              <Box>
-                                <Text fontWeight="semibold">{assignment.workOrder.code}</Text>
-                                <Text fontSize="sm" color={mutedText}>
-                                  Logged on {formatDateTime(assignment.createdAt)}
-                                </Text>
-                              </Box>
-                              <Tag colorScheme={statusColorMap[assignment.workOrder.status]}>
-                                <TagLabel>{formatStatusLabel(assignment.workOrder.status)}</TagLabel>
-                              </Tag>
-                            </HStack>
-                            <Stack spacing={1} mt={3}>
-                              {assignment.role && <Text fontSize="sm">Role: {assignment.role}</Text>}
-                              {assignment.notes && <Text fontSize="sm">Notes: {assignment.notes}</Text>}
-                              <Text fontSize="sm">Services: {assignment.servicesCount}</Text>
-                              <Text fontSize="sm" fontWeight="medium">
-                                Work order total: {formatCurrency(assignment.workOrder.totalCost)}
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Contact
+                  </Text>
+                  <Stack spacing={1} color={detailTextColor}>
+                    <Text>Phone: {workerDetailQuery.data.phone ?? '—'}</Text>
+                  </Stack>
+                </Box>
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Salary
+                  </Text>
+                  <Stack spacing={1} color={detailTextColor}>
+                    <Text>Amount: {workerDetailQuery.data.salaryAmount ? formatCurrency(Number(workerDetailQuery.data.salaryAmount)) : '—'}</Text>
+                    <Text>Frequency: {workerDetailQuery.data.salaryFrequency === 'DAILY' ? 'Daily' : 'Monthly'}</Text>
+                    <Text>
+                      Last paid:{' '}
+                      {workerDetailQuery.data.lastSalaryPaidAt
+                        ? formatDateTime(workerDetailQuery.data.lastSalaryPaidAt)
+                        : 'Not recorded'}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      colorScheme={workerDetailQuery.data.isSalaryDue ? 'orange' : 'green'}
+                      isLoading={salaryUpdatingId === workerDetailQuery.data.id && isUpdatingSalaryStatus}
+                      onClick={() =>
+                        handleSalaryStatusChange(workerDetailQuery.data, workerDetailQuery.data.isSalaryDue ? 'PAID' : 'UNPAID')
+                      }
+                    >
+                      {workerDetailQuery.data.isSalaryDue ? 'Mark Paid' : 'Mark Unpaid'}
+                    </Button>
+                  </Stack>
+                </Box>
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Performance
+                  </Text>
+                  <HStack spacing={6}>
+                    <Box>
+                      <Text fontSize="sm" color={mutedText}>
+                        Jobs completed
+                      </Text>
+                      <Text fontSize="lg" fontWeight="semibold">
+                        {workerDetailQuery.data.totalJobs}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color={mutedText}>
+                        Services delivered
+                      </Text>
+                      <Text fontSize="lg" fontWeight="semibold">
+                        {workerDetailQuery.data.totalServices}
+                      </Text>
+                    </Box>
+                  </HStack>
+                </Box>
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Expenses
+                  </Text>
+                  <Stack spacing={1} color={detailTextColor}>
+                    <Text>Commute: {formatCurrency(toExpenseNumber(workerDetailQuery.data.commuteExpense))}</Text>
+                    <Text>Shift: {formatCurrency(toExpenseNumber(workerDetailQuery.data.shiftExpense))}</Text>
+                    <Text>Meal: {formatCurrency(toExpenseNumber(workerDetailQuery.data.mealExpense))}</Text>
+                    <Text>Other: {formatCurrency(toExpenseNumber(workerDetailQuery.data.otherExpense))}</Text>
+                    <Text fontWeight="semibold">
+                      Total: {formatCurrency(detailExpensesTotal)}
+                    </Text>
+                  </Stack>
+                </Box>
+                <Box>
+                  <Text fontWeight="medium" mb={1}>
+                    Profile
+                  </Text>
+                  <Stack spacing={1} color={detailTextColor}>
+                    <Text>Created: {formatDateTime(workerDetailQuery.data.createdAt)}</Text>
+                    <Text>Last updated: {formatDateTime(workerDetailQuery.data.updatedAt)}</Text>
+                  </Stack>
+                </Box>
+                <Divider />
+                <Box>
+                  <Text fontWeight="medium" mb={3}>
+                    Recent assignments
+                  </Text>
+                  {workerDetailQuery.data.assignments.length === 0 ? (
+                    <Text color={mutedText}>No assignments recorded for this worker.</Text>
+                  ) : (
+                    <Stack spacing={4}>
+                      {workerDetailQuery.data.assignments.map((assignment) => (
+                        <Box key={assignment.id} borderWidth="1px" borderRadius="lg" p={4}>
+                          <HStack justify="space-between" align="flex-start">
+                            <Box>
+                              <Text fontWeight="semibold">{assignment.workOrder.code}</Text>
+                              <Text fontSize="sm" color={mutedText}>
+                                Logged on {formatDateTime(assignment.createdAt)}
                               </Text>
-                            </Stack>
-                          </Box>
-                        ))}
-                      </VStack>
-                    </CardBody>
-                  </Card>
-                )}
+                            </Box>
+                            <Tag colorScheme={statusColorMap[assignment.workOrder.status]}>
+                              <TagLabel>{formatStatusLabel(assignment.workOrder.status)}</TagLabel>
+                            </Tag>
+                          </HStack>
+                          <Stack spacing={1} mt={3} color={detailTextColor}>
+                            {assignment.role ? <Text>Role: {assignment.role}</Text> : null}
+                            {assignment.notes ? <Text>Notes: {assignment.notes}</Text> : null}
+                            <Text>Services: {assignment.servicesCount}</Text>
+                            <Text>
+                              Work order total: {formatCurrency(assignment.workOrder.totalCost)}
+                            </Text>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
               </Stack>
             ) : null}
           </DrawerBody>
@@ -1384,3 +919,5 @@ export const WorkersPage = () => {
     </AppShell>
   );
 };
+
+
